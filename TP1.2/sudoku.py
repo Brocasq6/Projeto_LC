@@ -8,7 +8,7 @@
 
 import marimo
 
-__generated_with = "0.24.2"
+__generated_with = "0.25.0"
 app = marimo.App(width="medium")
 
 
@@ -42,7 +42,7 @@ def _(mo):
     | Validação | `validar_grelha`, `validar_pistas`, `verificar_add` |
     | Bónus | Sudoku diagonal (X-Sudoku) e escala até $n=6$ |
 
-    Todas as funções recebem `n` como parâmetro, por isso nada está fixo a 9×9.
+    Nenhuma função tem o tamanho 9×9 fixo: tudo é calculado a partir de `n` (ou de $N = n^2$).
     """)
     return
 
@@ -394,9 +394,9 @@ def _(mo):
 
     `montar_sudoku` junta ao modelo $n^2$ linhas e $n^2$ colunas (com `path`), $n^2$ blocos (com `cube`) e o grupo de pistas. Como as pistas são só mais um grupo, o modelo não precisa de nenhum caso especial.
 
-    **Quando não há solução.** Mesmo com valores diferentes, as pistas podem gerar um puzzle impossível. Exemplo em 4×4: com 1 em (0,3), 4 em (0,2), 2 em (3,0) e 3 em (1,1), a célula (0,0) não pode ter nenhum valor.
+    **Quando não há solução.** Mesmo com valores diferentes, as pistas podem gerar um puzzle impossível. Exemplo em 4x4: com 1 em (0,3), 4 em (0,2), 2 em (3,0) e 3 em (1,1), a célula (0,0) não pode ter nenhum valor.
 
-    Escolhemos tentar de novo: `resolver_sudoku` gera novas pistas (seed, seed+1, …) até 10 vezes. Se nenhuma tentativa der solução, devolve `None` e o notebook mostra "sem solucao". Assim o utilizador recebe quase sempre um puzzle válido, o notebook nunca entra em ciclo infinito e a mesma seed dá sempre o mesmo resultado. Nos nossos testes isto acontece sobretudo com $n=2$ e muitas pistas.
+    Escolhemos tentar de novo: `resolver_sudoku` gera novas pistas (seed, seed+1, ...) até 10 vezes. Se nenhuma tentativa der solução, devolve `(pistas, None)` e o notebook mostra "sem solucao".. Assim o utilizador recebe quase sempre um puzzle válido, o notebook nunca entra em ciclo infinito e a mesma seed dá sempre o mesmo resultado. Nos nossos testes isto acontece sobretudo com $n=2$ e muitas pistas.
     """)
     return
 
@@ -505,7 +505,7 @@ def _(mo):
     - `validar_pistas` confirma que cada pista mantém o seu valor na solução.
     - `verificar_add` testa coordenadas fora da grelha e os valores 0 e $n^2+1$, que têm de dar erro, e alguns casos válidos, que não podem dar erro.
 
-    A célula de testes corre o fluxo completo para $n=2$ e $n=3$, com 5 seeds cada. No fim estraga de propósito uma célula de uma grelha correta, para mostrar que o validador deteta erros e não diz sempre "OK".
+    A célula de testes corre o fluxo completo para $n=2$ e $n=3$, com 5 seeds cada. Para cada $n$, no fim, estraga de propósito uma célula de uma grelha correta, para mostrar que o validador deteta erros e não diz sempre "OK".
     """)
     return
 
@@ -691,7 +691,7 @@ def _(mo, slider_n):
 
 @app.cell
 def _(mo):
-    slider_n = mo.ui.slider(2, 9, value=3, label="n")
+    slider_n = mo.ui.slider(2, 6, value=3, label="n")
     slider_n
     return (slider_n,)
 
@@ -721,21 +721,23 @@ def _(mo):
     mo.md(r"""
     ## Escala e limites
 
-    O código não tem nada fixo a 9×9, por isso funciona para qualquer $n$ sem alterações.
+    O código não tem nada fixo a 9x9: tudo é calculado a partir de `n` ou de $N = n^2$, por isso funciona para qualquer $n$ sem alterações.
     Tempo de resolução de um Sudoku normal com $k = n$ pistas:
 
     | n | grelha | tempo |
     |---|---|---|
-    | 2 | 4×4 | < 0.1s |
-    | 3 | 9×9 | < 0.1s |
-    | 4 | 16×16 | < 0.3s |
-    | 5 | 25×25 | < 1.6s |
-    | 6 | 36×36 | < 7s |
-    | 7 | 49×49 | < 14s |
-    | 8 | 64×64 | < 40s |
-    | 9 | 81x81 | > 10min |
+    | 2 | 4x4 | < 0,1 s |
+    | 3 | 9x9 | < 0,1 s |
+    | 4 | 16x16 | ~0,3 s |
+    | 5 | 25x25 | ~1,5 s |
+    | 6 | 36x36 | ~6 s |
+    | 7 | 49x49 | ~12 s |
+    | 8 | 64x64 | ~35 s |
+    | 9 | 81x81 | > 10 min |
 
-    Com $n = 10$ nao tentamos resolver dado que o tempo de resolução era bem superior a 15min. O número de variáveis é $n^4$ e cada restrição "todos diferentes" tem $n^2$ variáveis, por isso o problema cresce muito depressa. Foi por isso que limitámos os sliders a $n \le 8$.
+    **Porque cresce tão depressa.** Há $N^2 = n^4$ variáveis, cada uma com $n^2$ valores possíveis, e $3n^2$ restrições "todos diferentes" (linhas, colunas e blocos) com $n^2$ variáveis cada, mais a do grupo das pistas. Ao passar de $n=6$ para $n=9$, o número de variáveis passa de 1296 para 6561 e cada domínio passa de 36 para 81 valores. Além disso, com só $k = n$ pistas a grelha está quase vazia, e o solver tem de construir a solução praticamente do zero.
+
+    **Limite dos sliders.** Como o notebook é reativo, cada mudança num slider volta a correr o solver, e o `solve()` não tem limite de tempo. Limitámos o slider a $n \le 6$ porque $n=6$ é o valor sugerido na extensão de escala do enunciado e ainda se resolve em poucos segundos. Para $n = 7$ e $n = 8$ o código funciona (ver tabela), mas o notebook ficava parado dezenas de segundos a cada mudança. Com $n = 9$ ficava bloqueado mais de 10 minutos.
     """)
     return
 
@@ -848,7 +850,7 @@ def _(mo):
 
 @app.cell
 def _(mo):
-    slider_n_diagonal = mo.ui.slider(2, 8, value=3, label="n")
+    slider_n_diagonal = mo.ui.slider(2, 6, value=3, label="n")
     slider_n_diagonal
     return (slider_n_diagonal,)
 
@@ -879,21 +881,23 @@ def _(
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ## Escala e limites
+    ## Escala e limites (X-Sudoku)
 
-    O código não tem nada fixo a 9×9, por isso funciona para qualquer $n$ sem alterações. Tempo de resolução de um Sudoku normal com $k = n$ pistas:
+    O X-Sudoku usa exatamente o mesmo modelo, apenas com mais 2 restrições "todos diferentes" (as diagonais). Tempo de resolução com $k = n$ pistas:
 
     | n | grelha | tempo |
     |---|---|---|
-    | 2 | 4×4 | < 0,1 s |
-    | 3 | 9×9 | < 0,1 s |
-    | 4 | 16×16 | ~0,3 s |
-    | 5 | 25×25 | ~1,6 s |
-    | 6 | 36×36 | ~7 s |
-    | 7 | 49×49 | ~14 s |
-    | 8 | 64×64 | ~40 s |
+    | 2 | 4x4 | < 0,1 s |
+    | 3 | 9x9 | < 0,1 s |
+    | 4 | 16x16 | ~ 0,3 s |
+    | 5 | 25x25 | ~ 1 s |
+    | 6 | 36x36 | ~ 4 s |
+    | 7 | 49x49 | ~ 10 s |
+    | 8 | 64x64 | ~ 110 s |
 
-    Com $n = 10$ não houve solução em 90 s. O número de variáveis é $n^4$ e cada restrição "todos diferentes" tem $n^2$ variáveis, por isso o problema cresce muito depressa. Foi por isso que limitámos os sliders a $n \le 6$.
+    **Comparação com o Sudoku normal.** Até $n = 4$ os tempos foram praticamente iguais. De $n = 5$ a $n = 7$ o X-Sudoku foi ligeiramente mais rápido.As restrições extra cortam mais valores logo no início e o solver tem menos possibilidades para explorar. Em $n = 8$ demorou cerca de 3 vezes mais. Isto mostra que o tempo do CP-SAT não depende só do tamanho: depende também de quão "difícil" é a combinação concreta de pistas e restrições. Mais restrições tanto podem ajudar (menos possibilidades) como atrapalhar (mais difícil encontrar uma solução que cumpra tudo).
+
+    **Limite dos sliders.** Pela mesma razão do Sudoku normal, limitámos o slider a $n \le 6$.
     """)
     return
 
@@ -919,7 +923,7 @@ def _(mo):
     - **`montar_sudoku_diagonal`**: chama `montar_sudoku` e junta dois `box` com as diagonais, as células `(i, i)` e `(i, N-1-i)`.
     - **`resolver_sudoku_diagonal`**: igual a `resolver_sudoku`, mas chama `montar_sudoku_diagonal`.
     - **`validar_diagonais`**: nova; aplica `valores_corretos` às duas diagonais.
-    - **Testes e interface**: os mesmos do Sudoku normal, com `validar_diagonais` a mais e sliders próprios.
+    - **Testes e interface**: o fluxo completo é testado para $n=2$ e $n=3$ com 5 seeds cada, como no Sudoku normal, agora também com `validar_diagonais`. O `verificar_add` não se repete porque o `box` é exatamente o mesmo. A interface tem sliders próprios: a seed vai de 1 a 10 e as pistas podem começar em 0.
     """)
     return
 

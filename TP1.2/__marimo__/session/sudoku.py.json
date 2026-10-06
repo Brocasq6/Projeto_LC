@@ -84,7 +84,7 @@
       "console": []
     },
     {
-      "id": "AADd",
+      "id": "Xref",
       "code_hash": "b1902ca524ef995368d401f831ae93e9",
       "outputs": [
         {
@@ -97,7 +97,7 @@
       "console": []
     },
     {
-      "id": "Xref",
+      "id": "SFPL",
       "code_hash": "05dd9c4f829df92b5e72a024f854f045",
       "outputs": [
         {
@@ -110,7 +110,7 @@
       "console": []
     },
     {
-      "id": "SFPL",
+      "id": "BYtC",
       "code_hash": "cad37a85210bb7b600d639066b677d9c",
       "outputs": [
         {
@@ -123,7 +123,7 @@
       "console": []
     },
     {
-      "id": "MGPA",
+      "id": "RGSE",
       "code_hash": "771172be828eb8278b12e588b501430b",
       "outputs": [
         {
@@ -136,7 +136,7 @@
       "console": []
     },
     {
-      "id": "BYtC",
+      "id": "Kclp",
       "code_hash": "a36e6d1802747d5b3091175f824b16a6",
       "outputs": [
         {
@@ -149,7 +149,7 @@
       "console": []
     },
     {
-      "id": "RGSE",
+      "id": "emfo",
       "code_hash": "5825717020f7f0c5e89a73c79637c173",
       "outputs": [
         {
@@ -162,7 +162,7 @@
       "console": []
     },
     {
-      "id": "wxHg",
+      "id": "Hstk",
       "code_hash": "6e3bcaa9d3663fe6348c7aaf47b3675d",
       "outputs": [
         {
@@ -175,7 +175,7 @@
       "console": []
     },
     {
-      "id": "Kclp",
+      "id": "nWHF",
       "code_hash": "cb1937c1f9038701add25e54eb7620be",
       "outputs": [
         {
@@ -188,7 +188,7 @@
       "console": []
     },
     {
-      "id": "emfo",
+      "id": "iLit",
       "code_hash": "582b758a7dc5f2f71028fc1d8bfd1087",
       "outputs": [
         {
@@ -201,7 +201,7 @@
       "console": []
     },
     {
-      "id": "dvUb",
+      "id": "ZHCJ",
       "code_hash": "9b20756b4bd04897c7e4add825cc7762",
       "outputs": [
         {
@@ -214,7 +214,7 @@
       "console": []
     },
     {
-      "id": "Hstk",
+      "id": "ROlb",
       "code_hash": "0d3294b3166884487e3b7bad22bf35b5",
       "outputs": [
         {
@@ -227,7 +227,7 @@
       "console": []
     },
     {
-      "id": "nWHF",
+      "id": "qnkX",
       "code_hash": "2a74471357ad3a55790756b1905a38ba",
       "outputs": [
         {
@@ -240,7 +240,7 @@
       "console": []
     },
     {
-      "id": "iLit",
+      "id": "TqIu",
       "code_hash": "3e919a3305548be1dd6251c701e74db0",
       "outputs": [
         {
@@ -253,7 +253,7 @@
       "console": []
     },
     {
-      "id": "ZHCJ",
+      "id": "Vxnm",
       "code_hash": "3a8447f96b842a7239e4c7bd5906ef07",
       "outputs": [
         {
@@ -266,7 +266,7 @@
       "console": []
     },
     {
-      "id": "ROlb",
+      "id": "DnEU",
       "code_hash": "c75bf624e94920ff4e3584a9f4f9247d",
       "outputs": [
         {
@@ -279,7 +279,7 @@
       "console": []
     },
     {
-      "id": "qnkX",
+      "id": "ulZA",
       "code_hash": "7b0a1652660919ef37e980a59affe697",
       "outputs": [
         {
@@ -292,7 +292,7 @@
       "console": []
     },
     {
-      "id": "TqIu",
+      "id": "ecfG",
       "code_hash": "5f35556e1f62f738246118ffdafe70d0",
       "outputs": [
         {
@@ -305,7 +305,7 @@
       "console": []
     },
     {
-      "id": "Vxnm",
+      "id": "Pvdt",
       "code_hash": "6324f5423f1970b421ca1a2f419974a9",
       "outputs": [
         {
@@ -325,7 +325,7 @@
       ]
     },
     {
-      "id": "CzVJ",
+      "id": "ZBYS",
       "code_hash": "ea0666e7a6bdd1d06f977bb5467dbb30",
       "outputs": [
         {
@@ -338,7 +338,7 @@
       "console": []
     },
     {
-      "id": "DnEU",
+      "id": "aLJB",
       "code_hash": "2692467e6d3a94fb67bf453d8b112636",
       "outputs": [
         {
@@ -351,46 +351,46 @@
       "console": []
     },
     {
-      "id": "ulZA",
+      "id": "nHfw",
       "code_hash": "85ea0620aaa49125ae7683a2c3e66a92",
       "outputs": [
         {
           "type": "data",
           "data": {
-            "text/html": "<marimo-ui-element object-id='ulZA-0' random-id='8cd0ce7d-a027-3594-7269-8428b2f72f9e'><marimo-slider data-initial-value='1' data-label='&quot;&#92;u003cspan class=&#92;&quot;markdown prose dark:prose-invert contents&#92;&quot;&#92;u003e&#92;u003cspan class=&#92;&quot;paragraph&#92;&quot;&#92;u003eseed&#92;u003c/span&#92;u003e&#92;u003c/span&#92;u003e&quot;' data-start='1' data-stop='1000' data-steps='[]' data-debounce='false' data-disabled='false' data-orientation='&quot;horizontal&quot;' data-show-value='false' data-include-input='false' data-full-width='false'></marimo-slider></marimo-ui-element>"
+            "text/html": "<marimo-ui-element object-id='nHfw-0' random-id='9d7a0c83-8714-0e37-8497-ad83c213259c'><marimo-slider data-initial-value='1' data-label='&quot;&#92;u003cspan class=&#92;&quot;markdown prose dark:prose-invert contents&#92;&quot;&#92;u003e&#92;u003cspan class=&#92;&quot;paragraph&#92;&quot;&#92;u003eseed&#92;u003c/span&#92;u003e&#92;u003c/span&#92;u003e&quot;' data-start='1' data-stop='1000' data-steps='[]' data-debounce='false' data-disabled='false' data-orientation='&quot;horizontal&quot;' data-show-value='false' data-include-input='false' data-full-width='false'></marimo-slider></marimo-ui-element>"
           }
         }
       ],
       "console": []
     },
     {
-      "id": "ecfG",
+      "id": "xXTn",
       "code_hash": "4d6c8adfa0aed115c2635940571bb927",
       "outputs": [
         {
           "type": "data",
           "data": {
-            "text/html": "<marimo-ui-element object-id='ecfG-0' random-id='ab10e42c-992e-ad5b-cea0-938b14ab3e27'><marimo-slider data-initial-value='3' data-label='&quot;&#92;u003cspan class=&#92;&quot;markdown prose dark:prose-invert contents&#92;&quot;&#92;u003e&#92;u003cspan class=&#92;&quot;paragraph&#92;&quot;&#92;u003epistas&#92;u003c/span&#92;u003e&#92;u003c/span&#92;u003e&quot;' data-start='1' data-stop='9' data-steps='[]' data-debounce='false' data-disabled='false' data-orientation='&quot;horizontal&quot;' data-show-value='false' data-include-input='false' data-full-width='false'></marimo-slider></marimo-ui-element>"
+            "text/html": "<marimo-ui-element object-id='xXTn-0' random-id='a4713792-f03e-47ea-52db-5d60998ead57'><marimo-slider data-initial-value='3' data-label='&quot;&#92;u003cspan class=&#92;&quot;markdown prose dark:prose-invert contents&#92;&quot;&#92;u003e&#92;u003cspan class=&#92;&quot;paragraph&#92;&quot;&#92;u003epistas&#92;u003c/span&#92;u003e&#92;u003c/span&#92;u003e&quot;' data-start='1' data-stop='9' data-steps='[]' data-debounce='false' data-disabled='false' data-orientation='&quot;horizontal&quot;' data-show-value='false' data-include-input='false' data-full-width='false'></marimo-slider></marimo-ui-element>"
           }
         }
       ],
       "console": []
     },
     {
-      "id": "Pvdt",
-      "code_hash": "3415e762f81f8c72f986dc38c36a2597",
+      "id": "AjVT",
+      "code_hash": "67143761c9d8a5a0b594dbc98a01cdf9",
       "outputs": [
         {
           "type": "data",
           "data": {
-            "text/html": "<marimo-ui-element object-id='Pvdt-0' random-id='46360755-f9d5-659c-93f6-31ecca2f1ad4'><marimo-slider data-initial-value='3' data-label='&quot;&#92;u003cspan class=&#92;&quot;markdown prose dark:prose-invert contents&#92;&quot;&#92;u003e&#92;u003cspan class=&#92;&quot;paragraph&#92;&quot;&#92;u003en&#92;u003c/span&#92;u003e&#92;u003c/span&#92;u003e&quot;' data-start='2' data-stop='9' data-steps='[]' data-debounce='false' data-disabled='false' data-orientation='&quot;horizontal&quot;' data-show-value='false' data-include-input='false' data-full-width='false'></marimo-slider></marimo-ui-element>"
+            "text/html": "<marimo-ui-element object-id='AjVT-0' random-id='9061f206-ebee-1c7c-e8fb-4974dfa45a26'><marimo-slider data-initial-value='3' data-label='&quot;&#92;u003cspan class=&#92;&quot;markdown prose dark:prose-invert contents&#92;&quot;&#92;u003e&#92;u003cspan class=&#92;&quot;paragraph&#92;&quot;&#92;u003en&#92;u003c/span&#92;u003e&#92;u003c/span&#92;u003e&quot;' data-start='2' data-stop='6' data-steps='[]' data-debounce='false' data-disabled='false' data-orientation='&quot;horizontal&quot;' data-show-value='false' data-include-input='false' data-full-width='false'></marimo-slider></marimo-ui-element>"
           }
         }
       ],
       "console": []
     },
     {
-      "id": "ZBYS",
+      "id": "pHFh",
       "code_hash": "066cac7eb0dbd5234a2ee924a23a9c71",
       "outputs": [
         {
@@ -404,13 +404,13 @@
         {
           "type": "stream",
           "name": "stdout",
-          "text": "Pistas:\n .  .  . |  .  .  . |  .  .  4 \n .  .  . |  .  .  . |  .  .  5 \n .  .  . |  .  .  . |  .  .  . \n-------------------------------\n .  .  . |  .  .  . |  .  .  . \n .  .  . |  .  .  . |  .  .  . \n .  .  . |  .  .  . |  .  .  . \n-------------------------------\n .  .  . |  .  .  . |  .  .  . \n .  .  . |  .  .  . |  .  .  . \n 2  .  . |  .  .  . |  .  .  . \n\nSolucao:\n 8  3  9 |  5  7  6 |  1  2  4 \n 1  2  6 |  3  4  9 |  8  7  5 \n 4  7  5 |  2  1  8 |  3  6  9 \n-------------------------------\n 5  6  4 |  1  2  3 |  7  9  8 \n 3  1  2 |  8  9  7 |  5  4  6 \n 9  8  7 |  6  5  4 |  2  1  3 \n-------------------------------\n 6  5  1 |  4  3  2 |  9  8  7 \n 7  4  3 |  9  8  1 |  6  5  2 \n 2  9  8 |  7  6  5 |  4  3  1 \n\n",
+          "text": "Pistas:\n .  .  . |  .  .  . |  .  .  . \n .  .  . |  .  .  . |  .  .  2 \n .  .  . |  .  .  . |  .  .  . \n-------------------------------\n .  .  . |  .  .  . |  .  .  . \n .  .  . |  .  .  . |  .  .  . \n .  .  . |  .  .  . |  .  .  . \n-------------------------------\n .  .  . |  .  .  . |  .  .  . \n .  .  . |  .  .  . |  .  .  . \n .  .  . |  .  .  . |  .  .  . \n\nSolucao:\n 5  4  1 |  6  7  2 |  9  8  3 \n 8  3  9 |  1  5  4 |  7  6  2 \n 2  6  7 |  3  8  9 |  5  1  4 \n-------------------------------\n 1  8  2 |  7  6  5 |  3  4  9 \n 4  7  3 |  9  2  1 |  8  5  6 \n 9  5  6 |  8  4  3 |  2  7  1 \n-------------------------------\n 6  1  8 |  2  9  7 |  4  3  5 \n 3  9  4 |  5  1  8 |  6  2  7 \n 7  2  5 |  4  3  6 |  1  9  8 \n\n",
           "mimetype": "text/plain"
         }
       ]
     },
     {
-      "id": "IxzP",
+      "id": "NCOB",
       "code_hash": "08747218516efb156868450ffeecf1b4",
       "outputs": [
         {
@@ -423,20 +423,20 @@
       "console": []
     },
     {
-      "id": "aLJB",
-      "code_hash": "b91696339c9a905d38a7c38616f42c50",
+      "id": "aqbW",
+      "code_hash": "8c1d65d0a990d4ac5da876f2af4a6048",
       "outputs": [
         {
           "type": "data",
           "data": {
-            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h2 id=\"escala-e-limites\">Escala e limites</h2>\n<span class=\"paragraph\">O c\u00f3digo n\u00e3o tem nada fixo a 9\u00d79, por isso funciona para qualquer <marimo-tex class=\"arithmatex\">||(n||)</marimo-tex> sem altera\u00e7\u00f5es.\nTempo de resolu\u00e7\u00e3o de um Sudoku normal com <marimo-tex class=\"arithmatex\">||(k = n||)</marimo-tex> pistas:</span>\n<table>\n<thead>\n<tr>\n<th>n</th>\n<th>grelha</th>\n<th>tempo</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>2</td>\n<td>4\u00d74</td>\n<td>&lt; 0.1s</td>\n</tr>\n<tr>\n<td>3</td>\n<td>9\u00d79</td>\n<td>&lt; 0.1s</td>\n</tr>\n<tr>\n<td>4</td>\n<td>16\u00d716</td>\n<td>&lt; 0.3s</td>\n</tr>\n<tr>\n<td>5</td>\n<td>25\u00d725</td>\n<td>&lt; 1.6s</td>\n</tr>\n<tr>\n<td>6</td>\n<td>36\u00d736</td>\n<td>&lt; 7s</td>\n</tr>\n<tr>\n<td>7</td>\n<td>49\u00d749</td>\n<td>&lt; 14s</td>\n</tr>\n<tr>\n<td>8</td>\n<td>64\u00d764</td>\n<td>&lt; 40s</td>\n</tr>\n<tr>\n<td>9</td>\n<td>81x81</td>\n<td>&gt; 10min</td>\n</tr>\n</tbody>\n</table>\n<span class=\"paragraph\">Com <marimo-tex class=\"arithmatex\">||(n = 10||)</marimo-tex> nao tentamos resolver dado que o tempo de resolu\u00e7\u00e3o era bem superior a 15min. O n\u00famero de vari\u00e1veis \u00e9 <marimo-tex class=\"arithmatex\">||(n^4||)</marimo-tex> e cada restri\u00e7\u00e3o \"todos diferentes\" tem <marimo-tex class=\"arithmatex\">||(n^2||)</marimo-tex> vari\u00e1veis, por isso o problema cresce muito depressa. Foi por isso que limit\u00e1mos os sliders a <marimo-tex class=\"arithmatex\">||(n \\le 8||)</marimo-tex>.</span></span>"
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h2 id=\"escala-e-limites\">Escala e limites</h2>\n<span class=\"paragraph\">O c\u00f3digo n\u00e3o tem nada fixo a 9\u00d79: todas as fun\u00e7\u00f5es recebem <code>n</code> e calculam <marimo-tex class=\"arithmatex\">||(N = n^2||)</marimo-tex>, por isso funciona para qualquer <marimo-tex class=\"arithmatex\">||(n||)</marimo-tex> sem altera\u00e7\u00f5es.</span>\n<span class=\"paragraph\">Tempo de resolu\u00e7\u00e3o de um Sudoku normal com <marimo-tex class=\"arithmatex\">||(k = n||)</marimo-tex> pistas:</span>\n<table>\n<thead>\n<tr>\n<th>n</th>\n<th>grelha</th>\n<th>tempo</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>2</td>\n<td>4\u00d74</td>\n<td>&lt; 0,1 s</td>\n</tr>\n<tr>\n<td>3</td>\n<td>9\u00d79</td>\n<td>&lt; 0,1 s</td>\n</tr>\n<tr>\n<td>4</td>\n<td>16\u00d716</td>\n<td>~0,3 s</td>\n</tr>\n<tr>\n<td>5</td>\n<td>25\u00d725</td>\n<td>~1,5 s</td>\n</tr>\n<tr>\n<td>6</td>\n<td>36\u00d736</td>\n<td>~6 s</td>\n</tr>\n<tr>\n<td>7</td>\n<td>49\u00d749</td>\n<td>~12 s</td>\n</tr>\n<tr>\n<td>8</td>\n<td>64\u00d764</td>\n<td>~35 s</td>\n</tr>\n<tr>\n<td>9</td>\n<td>81\u00d781</td>\n<td>&gt; 10 min</td>\n</tr>\n</tbody>\n</table>\n<span class=\"paragraph\"><strong>Porque cresce t\u00e3o depressa.</strong> H\u00e1 <marimo-tex class=\"arithmatex\">||(N^2 = n^4||)</marimo-tex> vari\u00e1veis, cada uma com <marimo-tex class=\"arithmatex\">||(n^2||)</marimo-tex> valores poss\u00edveis, e <marimo-tex class=\"arithmatex\">||(3n^2||)</marimo-tex> restri\u00e7\u00f5es \"todos diferentes\" com <marimo-tex class=\"arithmatex\">||(n^2||)</marimo-tex> vari\u00e1veis cada. Ao passar de <marimo-tex class=\"arithmatex\">||(n=6||)</marimo-tex> para <marimo-tex class=\"arithmatex\">||(n=9||)</marimo-tex>, o n\u00famero de vari\u00e1veis passa de 1296 para 6561 e cada dom\u00ednio passa de 36 para 81 valores. Al\u00e9m disso, com s\u00f3 <marimo-tex class=\"arithmatex\">||(k = n||)</marimo-tex> pistas a grelha est\u00e1 quase vazia, e o solver tem de construir a solu\u00e7\u00e3o praticamente do zero.</span>\n<span class=\"paragraph\"><strong>Limite dos sliders.</strong> Como o notebook \u00e9 reativo, cada mudan\u00e7a num slider volta a correr o solver, e o <code>solve()</code> n\u00e3o tem limite de tempo. Limit\u00e1mos o slider a <marimo-tex class=\"arithmatex\">||(n \\le 6||)</marimo-tex> porque <marimo-tex class=\"arithmatex\">||(n=6||)</marimo-tex> \u00e9 o valor pedido no enunciado e ainda se resolve em poucos segundos. Para <marimo-tex class=\"arithmatex\">||(n = 7||)</marimo-tex> e <marimo-tex class=\"arithmatex\">||(n = 8||)</marimo-tex> o c\u00f3digo funciona (ver tabela), mas o notebook ficava parado dezenas de segundos a cada mudan\u00e7a. Com <marimo-tex class=\"arithmatex\">||(n = 9||)</marimo-tex> ficava bloqueado mais de 10 minutos.</span></span>"
           }
         }
       ],
       "console": []
     },
     {
-      "id": "nHfw",
+      "id": "TRpd",
       "code_hash": "631d42fe60f47fc03b1be8827b3f6bd4",
       "outputs": [
         {
@@ -449,7 +449,7 @@
       "console": []
     },
     {
-      "id": "xXTn",
+      "id": "TXez",
       "code_hash": "190031bc384c9d687f882b04d7a22bea",
       "outputs": [
         {
@@ -462,7 +462,7 @@
       "console": []
     },
     {
-      "id": "AjVT",
+      "id": "dNNg",
       "code_hash": "872a3574b2fcb1fa5bd95ca78b5fc548",
       "outputs": [
         {
@@ -475,7 +475,7 @@
       "console": []
     },
     {
-      "id": "pHFh",
+      "id": "yCnT",
       "code_hash": "2310825d199155a92568d59647d1a964",
       "outputs": [
         {
@@ -495,46 +495,46 @@
       ]
     },
     {
-      "id": "NCOB",
+      "id": "wlCL",
       "code_hash": "592ef83e2179488fc88a21daf7f2db0e",
       "outputs": [
         {
           "type": "data",
           "data": {
-            "text/html": "<marimo-ui-element object-id='NCOB-0' random-id='ff9f08af-dc40-648a-4d4f-8ddc6c44992f'><marimo-slider data-initial-value='1' data-label='&quot;&#92;u003cspan class=&#92;&quot;markdown prose dark:prose-invert contents&#92;&quot;&#92;u003e&#92;u003cspan class=&#92;&quot;paragraph&#92;&quot;&#92;u003eseed diagonal&#92;u003c/span&#92;u003e&#92;u003c/span&#92;u003e&quot;' data-start='1' data-stop='10' data-steps='[]' data-debounce='false' data-disabled='false' data-orientation='&quot;horizontal&quot;' data-show-value='false' data-include-input='false' data-full-width='false'></marimo-slider></marimo-ui-element>"
+            "text/html": "<marimo-ui-element object-id='wlCL-0' random-id='7a763ecc-1c03-25c5-4873-db41755c9e74'><marimo-slider data-initial-value='1' data-label='&quot;&#92;u003cspan class=&#92;&quot;markdown prose dark:prose-invert contents&#92;&quot;&#92;u003e&#92;u003cspan class=&#92;&quot;paragraph&#92;&quot;&#92;u003eseed diagonal&#92;u003c/span&#92;u003e&#92;u003c/span&#92;u003e&quot;' data-start='1' data-stop='10' data-steps='[]' data-debounce='false' data-disabled='false' data-orientation='&quot;horizontal&quot;' data-show-value='false' data-include-input='false' data-full-width='false'></marimo-slider></marimo-ui-element>"
           }
         }
       ],
       "console": []
     },
     {
-      "id": "aqbW",
-      "code_hash": "e38005afe4aab062c965a04b0b57ebb7",
+      "id": "kqZH",
+      "code_hash": "1a0ffaeb91e8cd1e2c37b6ee01fba397",
       "outputs": [
         {
           "type": "data",
           "data": {
-            "text/html": "<marimo-ui-element object-id='aqbW-0' random-id='9fdd7f50-acce-c2ba-19ec-0f4cbe79acbc'><marimo-slider data-initial-value='3' data-label='&quot;&#92;u003cspan class=&#92;&quot;markdown prose dark:prose-invert contents&#92;&quot;&#92;u003e&#92;u003cspan class=&#92;&quot;paragraph&#92;&quot;&#92;u003en&#92;u003c/span&#92;u003e&#92;u003c/span&#92;u003e&quot;' data-start='2' data-stop='8' data-steps='[]' data-debounce='false' data-disabled='false' data-orientation='&quot;horizontal&quot;' data-show-value='false' data-include-input='false' data-full-width='false'></marimo-slider></marimo-ui-element>"
+            "text/html": "<marimo-ui-element object-id='kqZH-0' random-id='463988b0-dc84-256c-28c7-79b7ce41442a'><marimo-slider data-initial-value='3' data-label='&quot;&#92;u003cspan class=&#92;&quot;markdown prose dark:prose-invert contents&#92;&quot;&#92;u003e&#92;u003cspan class=&#92;&quot;paragraph&#92;&quot;&#92;u003en&#92;u003c/span&#92;u003e&#92;u003c/span&#92;u003e&quot;' data-start='2' data-stop='6' data-steps='[]' data-debounce='false' data-disabled='false' data-orientation='&quot;horizontal&quot;' data-show-value='false' data-include-input='false' data-full-width='false'></marimo-slider></marimo-ui-element>"
           }
         }
       ],
       "console": []
     },
     {
-      "id": "TRpd",
+      "id": "wAgl",
       "code_hash": "8ffe76e792c32e0ad0014c8ccf43269d",
       "outputs": [
         {
           "type": "data",
           "data": {
-            "text/html": "<marimo-ui-element object-id='TRpd-0' random-id='7e74ea74-b3ad-96d6-43b0-24a97233bd35'><marimo-slider data-initial-value='3' data-label='&quot;&#92;u003cspan class=&#92;&quot;markdown prose dark:prose-invert contents&#92;&quot;&#92;u003e&#92;u003cspan class=&#92;&quot;paragraph&#92;&quot;&#92;u003epistas&#92;u003c/span&#92;u003e&#92;u003c/span&#92;u003e&quot;' data-start='0' data-stop='9' data-steps='[]' data-debounce='false' data-disabled='false' data-orientation='&quot;horizontal&quot;' data-show-value='false' data-include-input='false' data-full-width='false'></marimo-slider></marimo-ui-element>"
+            "text/html": "<marimo-ui-element object-id='wAgl-0' random-id='65ccf884-7a6b-901e-607b-29cec50ef4a3'><marimo-slider data-initial-value='3' data-label='&quot;&#92;u003cspan class=&#92;&quot;markdown prose dark:prose-invert contents&#92;&quot;&#92;u003e&#92;u003cspan class=&#92;&quot;paragraph&#92;&quot;&#92;u003epistas&#92;u003c/span&#92;u003e&#92;u003c/span&#92;u003e&quot;' data-start='0' data-stop='9' data-steps='[]' data-debounce='false' data-disabled='false' data-orientation='&quot;horizontal&quot;' data-show-value='false' data-include-input='false' data-full-width='false'></marimo-slider></marimo-ui-element>"
           }
         }
       ],
       "console": []
     },
     {
-      "id": "TXez",
+      "id": "rEll",
       "code_hash": "fa190aab286963d92f108cfb6d0a70f1",
       "outputs": [
         {
@@ -554,20 +554,20 @@
       ]
     },
     {
-      "id": "dNNg",
-      "code_hash": "dbe9c2d23e9af93f33744376f21bbcba",
+      "id": "dGlV",
+      "code_hash": "4afc50ee371db9c4a5bc49db59da8ca4",
       "outputs": [
         {
           "type": "data",
           "data": {
-            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h2 id=\"escala-e-limites\">Escala e limites</h2>\n<span class=\"paragraph\">O c\u00f3digo n\u00e3o tem nada fixo a 9\u00d79, por isso funciona para qualquer <marimo-tex class=\"arithmatex\">||(n||)</marimo-tex> sem altera\u00e7\u00f5es. Tempo de resolu\u00e7\u00e3o de um Sudoku normal com <marimo-tex class=\"arithmatex\">||(k = n||)</marimo-tex> pistas:</span>\n<table>\n<thead>\n<tr>\n<th>n</th>\n<th>grelha</th>\n<th>tempo</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>2</td>\n<td>4\u00d74</td>\n<td>&lt; 0,1 s</td>\n</tr>\n<tr>\n<td>3</td>\n<td>9\u00d79</td>\n<td>&lt; 0,1 s</td>\n</tr>\n<tr>\n<td>4</td>\n<td>16\u00d716</td>\n<td>~0,3 s</td>\n</tr>\n<tr>\n<td>5</td>\n<td>25\u00d725</td>\n<td>~1,6 s</td>\n</tr>\n<tr>\n<td>6</td>\n<td>36\u00d736</td>\n<td>~7 s</td>\n</tr>\n<tr>\n<td>7</td>\n<td>49\u00d749</td>\n<td>~14 s</td>\n</tr>\n<tr>\n<td>8</td>\n<td>64\u00d764</td>\n<td>~40 s</td>\n</tr>\n</tbody>\n</table>\n<span class=\"paragraph\">Com <marimo-tex class=\"arithmatex\">||(n = 10||)</marimo-tex> n\u00e3o houve solu\u00e7\u00e3o em 90 s. O n\u00famero de vari\u00e1veis \u00e9 <marimo-tex class=\"arithmatex\">||(n^4||)</marimo-tex> e cada restri\u00e7\u00e3o \"todos diferentes\" tem <marimo-tex class=\"arithmatex\">||(n^2||)</marimo-tex> vari\u00e1veis, por isso o problema cresce muito depressa. Foi por isso que limit\u00e1mos os sliders a <marimo-tex class=\"arithmatex\">||(n \\le 6||)</marimo-tex>.</span></span>"
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h2 id=\"escala-e-limites-x-sudoku\">Escala e limites (X-Sudoku)</h2>\n<span class=\"paragraph\">O X-Sudoku usa exatamente o mesmo modelo, apenas com mais 2 restri\u00e7\u00f5es \"todos diferentes\" (as diagonais). Tempo de resolu\u00e7\u00e3o com <marimo-tex class=\"arithmatex\">||(k = n||)</marimo-tex> pistas:</span>\n<table>\n<thead>\n<tr>\n<th>n</th>\n<th>grelha</th>\n<th>tempo</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>2</td>\n<td>4\u00d74</td>\n<td>&lt; 0,1 s</td>\n</tr>\n<tr>\n<td>3</td>\n<td>9\u00d79</td>\n<td>&lt; 0,1 s</td>\n</tr>\n<tr>\n<td>4</td>\n<td>16\u00d716</td>\n<td>~0,3 s</td>\n</tr>\n<tr>\n<td>5</td>\n<td>25\u00d725</td>\n<td>~1 s</td>\n</tr>\n<tr>\n<td>6</td>\n<td>36\u00d736</td>\n<td>~4 s</td>\n</tr>\n<tr>\n<td>7</td>\n<td>49\u00d749</td>\n<td>~10 s</td>\n</tr>\n<tr>\n<td>8</td>\n<td>64\u00d764</td>\n<td>~110 s</td>\n</tr>\n</tbody>\n</table>\n<span class=\"paragraph\"><strong>Compara\u00e7\u00e3o com o Sudoku normal.</strong> At\u00e9 <marimo-tex class=\"arithmatex\">||(n = 7||)</marimo-tex> o X-Sudoku foi ligeiramente mais r\u00e1pido. As restri\u00e7\u00f5es extra cortam mais valores logo no in\u00edcio e o solver tem menos possibilidades para explorar. Em <marimo-tex class=\"arithmatex\">||(n = 8||)</marimo-tex> demorou cerca de 3 vezes mais. Isto mostra que o tempo do CP-SAT n\u00e3o depende s\u00f3 do tamanho: depende tamb\u00e9m de qu\u00e3o \"dif\u00edcil\" \u00e9 a combina\u00e7\u00e3o concreta de pistas e restri\u00e7\u00f5es. Mais restri\u00e7\u00f5es tanto podem ajudar (menos possibilidades) como atrapalhar (mais dif\u00edcil encontrar uma solu\u00e7\u00e3o que cumpra tudo).</span>\n<span class=\"paragraph\"><strong>Limite dos sliders.</strong> Pela mesma raz\u00e3o do Sudoku normal, limit\u00e1mos o slider a <marimo-tex class=\"arithmatex\">||(n \\le 6||)</marimo-tex>.</span></span>"
           }
         }
       ],
       "console": []
     },
     {
-      "id": "YJGp",
+      "id": "SdmI",
       "code_hash": "f82d3b698b2fa9446561085e6c643dbf",
       "outputs": [
         {
@@ -580,7 +580,7 @@
       "console": []
     },
     {
-      "id": "AvOL",
+      "id": "lgWD",
       "code_hash": "15596be54d7b339df64a02708ab18151",
       "outputs": [
         {
