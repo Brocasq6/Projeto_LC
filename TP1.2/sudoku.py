@@ -8,7 +8,7 @@
 
 import marimo
 
-__generated_with = "0.25.0"
+__generated_with = "0.24.2"
 app = marimo.App(width="medium")
 
 
@@ -223,6 +223,16 @@ class path(box):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    Para a implementação das classes acima (box,cube,path) foi utilizado o recurso à LLM/IA "CLAUDE"
+
+    Link para a conversa : https://claude.ai/share/c4da3290-4301-40e1-8604-4de16e72043f
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ## Pistas aleatórias (R4)
 
     `pistas_random` escolhe `k` células diferentes e `k` valores diferentes (com `sample`) e devolve-os num `box` normal. Não foi precisa nenhuma classe nova.
@@ -240,11 +250,11 @@ def _(random):
         N = n * n
         gerador = random.Random(seed)
 
-        # se nao derem k, usar n pistas
-        if k == None:
+        # se nao derem k pistas, usar n pistas
+        if k is None:
             k = n
 
-        # como os valores sao todos diferentes, nao da para ter mais de N pistas
+        # como os valores sao todos diferentes, nao dá para ter mais de N pistas
         if k < 0 or k > N:
             raise ValueError("k tem de estar entre 0 e " + str(N))
 
@@ -278,11 +288,21 @@ def _(random):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    Para a implementação da funcao pistas_random foi utilizado o recurso à LLM/IA "CLAUDE"
+
+    Link para a conversa : https://claude.ai/share/4ab10ad3-801d-4fa8-ac1e-7ca50685c65a
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ## Modelo CSP (R5)
 
     Usamos o **CP-SAT do OR-Tools**, a sugestão da disciplina. Há uma variável inteira por célula com domínio $[1, n^2]$, como pede o R5. Cada grupo dá origem a uma única restrição `AddAllDifferent`, que é exatamente a regra do enunciado.
 
-    Pensámos também num modelo binário `x[l][c][v]` (como na ficha 3). Também funcionava, mas precisa de $n^2 \times n^2 \times n^2$ variáveis e obriga a escrever "todos diferentes" à mão com somas. Com CP-SAT a restrição é escrita diretamente e o código fica mais curto e mais próximo do enunciado.
+    Pensámos também num modelo `x[l][c][v]` (como na ficha 3). Também funcionava, mas precisa de $n^2 \times n^2 \times n^2$ variáveis e obriga a escrever "todos diferentes" à mão com somas. Com CP-SAT a restrição é escrita diretamente e o código fica mais curto e mais próximo do enunciado.
 
     - `add(*grupos)` aceita qualquer número de grupos e trata-os todos da mesma forma, sem saber se vêm de um `box`, `cube`, `path` ou das pistas. Para cada um impõe `AllDifferent` e fixa as células com valor (`x == valor`). Também verifica que o grupo foi criado com o mesmo `n` que o modelo.
     - `solve()` devolve a grelha como lista de listas, ou `None` se não houver solução. Como não há função objetivo, qualquer solução encontrada serve, e por isso aceitamos os estados `OPTIMAL` e `FEASIBLE`.
@@ -336,7 +356,7 @@ def _(cp_model):
                         self.modelo.Add(self.x[l][c] == valor)
 
         def solve(self):
-            solver = cp_model.CpSolver()
+            solver = cp_model.CpSolver()  #como fizemos nas aulas
             estado = solver.Solve(self.modelo)
 
             # se nao encontrou solucao devolve None
@@ -353,7 +373,18 @@ def _(cp_model):
 
             return grelha
 
+
     return (Modelo,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Para a implementação da classe modelo foi utilizado o recurso à LLM/IA "CLAUDE"
+
+    Link para a conversa : https://claude.ai/share/ecc0d986-1ba8-4293-a460-7cebbd57e664
+    """)
+    return
 
 
 @app.cell(hide_code=True)
@@ -411,6 +442,16 @@ def _(Modelo, pistas_random):
         return pistas, None
 
     return montar_sudoku, resolver_sudoku
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Para a implementação da funcao montar_sudoku e mostrar_sudoku foi utilizado o recurso à LLM/IA "CLAUDE"
+
+    Link para a conversa : https://claude.ai/share/c71be2e6-4b94-417b-b4a5-5fbfde0bf6b8
+    """)
+    return
 
 
 @app.cell(hide_code=True)
@@ -561,44 +602,63 @@ def _(resolver_sudoku):
     for numero_teste in [2, 3]:
         print("===== n =", numero_teste, "=====")
 
-        # 1. o add rejeita o que deve rejeitar
+        # o add rejeita o que deve rejeitar
         falhas_add = verificar_add(numero_teste)
+
         if len(falhas_add) == 0:
             print("add: OK")
         else:
             print("add: FALHOU", falhas_add)
             total_falhas = total_falhas + 1
 
-        # 2. fluxo completo com varias seeds
+        # fluxo completo com varias seeds
         for seed_teste in range(5):
+
             pistas_t, grelha_t = resolver_sudoku(numero_teste, seed=seed_teste)
+
             if grelha_t == None:
                 print("seed", seed_teste, ": sem solucao")
                 continue
+
             erros = validar_grelha(grelha_t, numero_teste) + validar_pistas(grelha_t, pistas_t)
+
             if len(erros) == 0:
-                print("seed", seed_teste, ": OK")
+                print("seed", seed_teste, ": ok")
             else:
-                print("seed", seed_teste, ": FALHOU", erros)
+                print("seed", seed_teste, ": falhou", erros)
                 total_falhas = total_falhas + 1
 
-        # 3. o validador apanha uma grelha estragada
+        # o validador apanha uma grelha estragada
+
         pistas_t, grelha_t = resolver_sudoku(numero_teste, seed=0)
+
         estragada = []
+
         for linha in grelha_t:
             estragada.append(list(linha))
         estragada[0][0] = grelha_t[1][0]
+
         if len(validar_grelha(estragada, numero_teste)) > 0:
-            print("validador apanha grelha errada: OK")
+            print("validador apanhou uma grelha errada: ok")
         else:
-            print("validador apanha grelha errada: FALHOU")
+            print("validador apanhou uma grelha errada: falhou")
             total_falhas = total_falhas + 1
 
     print()
     if total_falhas == 0:
-        print("TODOS OS TESTES PASSARAM")
+        print("todos os testes passaram")
     else:
-        print(total_falhas, "TESTE(S) FALHARAM")
+        print(total_falhas, "testes falharam")
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Para a implementação das funcões de validação foi utilizado o recurso à LLM/IA "CLAUDE"
+
+    Link para a conversa : https://claude.ai/share/5e083abb-eac3-442b-87b6-918f548c7586
+    """)
     return
 
 
@@ -649,6 +709,16 @@ def _(resolver_sudoku, slider_n, slider_pistas, slider_sudoku):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    para os slideres acima foi feita uma pesquisa no AI : GEMINI
+
+    Link para a conversa : https://share.google/aimode/9ypkiFvdZDPjGw64B
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ## Escala e limites
 
     O código não tem nada fixo a 9×9, por isso funciona para qualquer $n$ sem alterações.
@@ -665,7 +735,7 @@ def _(mo):
     | 8 | 64×64 | < 40s |
     | 9 | 81x81 | > 10min |
 
-    Com $n = 10$ não houve solução em menos de 15min. O número de variáveis é $n^4$ e cada restrição "todos diferentes" tem $n^2$ variáveis, por isso o problema cresce muito depressa. Foi por isso que limitámos os sliders a $n \le 6$.
+    Com $n = 10$ nao tentamos resolver dado que o tempo de resolução era bem superior a 15min. O número de variáveis é $n^4$ e cada restrição "todos diferentes" tem $n^2$ variáveis, por isso o problema cresce muito depressa. Foi por isso que limitámos os sliders a $n \le 8$.
     """)
     return
 
@@ -675,7 +745,7 @@ def _(mo):
     mo.md(r"""
     ## Bónus: Sudoku diagonal (X-Sudoku)
 
-    No X-Sudoku as duas diagonais principais também têm de ter valores todos diferentes. Basta acrescentar dois `box` normais: um com as células $(i, i)$ e outro com as células $(i, n^2-1-i)$. `montar_sudoku_diagonal` chama o `montar_sudoku` normal e só acrescenta estes dois grupos. O `Modelo` não mudou nada, o que mostra a vantagem de ter um grupo genérico.
+    No X-Sudoku as duas diagonais principais também têm de ter valores todos diferentes. Basta acrescentar dois `box` normais: um com as células $(i, i)$ e outro com as células $(i, n^2-1-i)$. A função `montar_sudoku_diagonal` chama a função `montar_sudoku` normal e só acrescenta estes dois grupos. O `Modelo` não mudou nada, o que mostra a vantagem de ter um grupo genérico.
 
     As pistas continuam a poder estar em qualquer célula; só a resolução tem a restrição extra. Com as diagonais, as pistas aleatórias dão mais vezes puzzles impossíveis (sobretudo em 4×4), e a mesma política de 10 tentativas trata disso.
 
@@ -763,9 +833,9 @@ def _(resolver_sudoku_diagonal):
 
     print()
     if falhas_diagonal == 0:
-        print("TODOS OS TESTES DO SUDOKU DIAGONAL PASSARAM")
+        print("todos os testes do sudoku diagonal passaram")
     else:
-        print(falhas_diagonal, "TESTE(S) DO SUDOKU DIAGONAL FALHARAM")
+        print(falhas_diagonal, "testes do sudoku diagonal falharam")
     return
 
 
@@ -824,6 +894,42 @@ def _(mo):
     | 8 | 64×64 | ~40 s |
 
     Com $n = 10$ não houve solução em 90 s. O número de variáveis é $n^4$ e cada restrição "todos diferentes" tem $n^2$ variáveis, por isso o problema cresce muito depressa. Foi por isso que limitámos os sliders a $n \le 6$.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    # X-Sudoku: reutilização do Sudoku normal
+
+    O X-Sudoku é um Sudoku normal em que as duas diagonais principais também têm de ter valores todos diferentes. Como o `Modelo` aplica `AllDifferent` a qualquer grupo de células, basta acrescentar dois grupos.
+
+    ## Reutilizado sem alterações
+
+    - `box`, `cube`, `path`
+    - `Modelo` (`add` e `solve`)
+    - `pistas_random`
+    - `montar_sudoku`
+    - `mostrar_sudoku`
+    - `valores_corretos`, `validar_grelha`, `validar_pistas`
+
+    ## O que é novo ou diferente
+
+    - **`montar_sudoku_diagonal`**: chama `montar_sudoku` e junta dois `box` com as diagonais, as células `(i, i)` e `(i, N-1-i)`.
+    - **`resolver_sudoku_diagonal`**: igual a `resolver_sudoku`, mas chama `montar_sudoku_diagonal`.
+    - **`validar_diagonais`**: nova; aplica `valores_corretos` às duas diagonais.
+    - **Testes e interface**: os mesmos do Sudoku normal, com `validar_diagonais` a mais e sliders próprios.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    para a reutilização de codigo para o X-SUDOKU foi usada a LLM/AI "CLAUDE"
+
+    Link para a conversa : https://claude.ai/share/57666cdf-259d-41fb-ad81-cfa606838ffc
     """)
     return
 
