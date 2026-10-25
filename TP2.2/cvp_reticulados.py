@@ -45,22 +45,39 @@ def _(mo):
         r"""
     # 1. Descrição do problema e abordagem
 
-    > **Objetivo** — *(a preencher: uma frase sobre o CVP e o que o notebook faz)*
+    > **Objetivo** — dado um reticulado gerado por uma base aleatória $G$ e um
+    > vetor alvo $t$, encontrar o vetor do reticulado mais próximo de $t$
+    > (Closest Vector Problem, CVP). O notebook gera as instâncias, resolve o
+    > CVP com programação cónica inteira e compara o ótimo com uma solução
+    > arredondada, para $k \in \{30, 40, 50\}$, $m = 2k$ e $\ell \in \{1, 5\}$.
 
     ## Regras principais
 
-    *(a preencher — escrever pelas vossas palavras, ao estilo de R1–R8)*
-
-    - **C1.** *(base)*
-    - **C2.** *(integralidade dos coeficientes)*
-    - **C3.** *(limites dos coeficientes)*
-    - **C4.** *(entradas da base)*
-    - **C5.** *(construção do target)*
-    - **O1.** *(objetivo: distância)*
+    - **C1.** Os $k$ vetores $g_1, \dots, g_k \in \mathbb{R}^m$ são linearmente
+      independentes, ou seja, formam de facto uma base.
+    - **C2.** Os coeficientes $z_1, \dots, z_k$ são inteiros: o vetor procurado
+      é $x = \sum_i z_i\, g_i = G^\top z$, um ponto do reticulado.
+    - **C3.** Cada coeficiente está limitado: $0 \le z_i \le \ell$.
+    - **C4.** Cada entrada $g_{i,j}$ da base é uma probabilidade, um real em
+      $[0, 1]$ gerado aleatoriamente.
+    - **C5.** O alvo é $t = G^\top u$, com $u \in [0, \ell]^k$ gerado
+      uniformemente; por isso $t \ge 0$.
+    - **O1.** Minimizar a distância euclidiana
+      $\mathsf{dist}(x, t) = \lVert G^\top z - t \rVert_2$.
 
     ## Estratégia de resolução
 
-    *(a preencher: porque é um problema cónico, que cone aparece, que solver se usa)*
+    Minimizar uma norma euclidiana é um problema cónico: introduz-se uma
+    variável $s$ e impõe-se $\lVert G^\top z - t \rVert_2 \le s$, que é
+    exatamente a pertença ao **cone de segunda ordem** (cone de Lorentz)
+    $(s,\, G^\top z - t) \in \mathcal{Q}^{m+1}$. O objetivo passa a ser
+    minimizar $s$, que é linear, e as restrições C3 são lineares. Sem C2
+    teríamos um SOCP contínuo. Com C2 é um programa cónico **inteiro misto**.
+
+    Modelamos o problema em `cvxpy`. O parâmetro `METODO` escolhe o solver:
+    o **Mosek**, que trata as variáveis inteiras diretamente, ou o
+    **Clarabel** com um **branch-and-bound** programado por nós, que resolve
+    a relaxação contínua em cada nó e ramifica numa variável fracionária.
     """
     )
     return
@@ -72,16 +89,43 @@ def _(mo):
         r"""
     ## Modelo e validação
 
-    *(a preencher: variáveis, restrições, objetivo; como `validar_solucao` verifica
-    a solução de forma independente do solver)*
+    **Variáveis.** $z \in \mathbb{Z}^k$ (os coeficientes) e uma variável
+    auxiliar $s \ge 0$ (a distância).
+
+    **Restrições.** $0 \le z_i \le \ell$ para todo o $i$ (C3) e
+    $(s,\, G^\top z - t) \in \mathcal{Q}^{m+1}$ (cone de segunda ordem).
+    No branch-and-bound, cada nó aperta os limites de algumas variáveis
+    ($z_i \le \lfloor v \rfloor$ ou $z_i \ge \lceil v \rceil$).
+
+    **Objetivo.** Minimizar $s$; no ótimo, $s = \lVert G^\top z - t \rVert_2$ (O1).
+
+    **Validação.** A função `validar_solucao` não usa o solver. Volta a
+    verificar C1 (característica de $G$), C4 e C5 na instância, confirma que
+    cada $z_i$ é inteiro (C2) e está em $[0, \ell]$ (C3), recalcula
+    $x = G^\top z$ e a distância «à mão» com `distancia`, e compara-os com os
+    valores devolvidos. Devolve a lista de erros, vazia se a solução for válida.
 
     ## Justificação das escolhas
 
-    **`cvxpy` + solver.** *(a preencher: Mosek vs Clarabel com branch-and-bound)*
+    **`cvxpy` + solver.** O `cvxpy` permite escrever o modelo quase como na
+    matemática e verifica que é convexo (regras DCP) antes de o passar ao
+    solver. O **Mosek** resolve programas cónicos inteiros mistos
+    diretamente, mas precisa de licença de estudante. O **Clarabel** é livre
+    mas só resolve problemas contínuos, por isso usamos com ele um
+    branch-and-bound: a relaxação contínua dá um limite inferior da
+    distância, o que permite cortar ramos que não podem melhorar a melhor
+    solução inteira já encontrada.
 
-    **Verificação da base.** *(a preencher: como se verifica a independência linear)*
+    **Verificação da base.** Os $k$ vetores são linearmente independentes se
+    e só se a matriz $G$ ($k \times m$, com $k \le m$) tiver característica
+    $k$. Calculamo-la com `np.linalg.matrix_rank`, que usa a decomposição em
+    valores singulares e uma tolerância numérica. Se a base falhar, gera-se
+    outra.
 
-    **Reprodutibilidade.** *(a preencher: semente fixa)*
+    **Reprodutibilidade.** Toda a aleatoriedade sai de um único gerador
+    `np.random.default_rng(SEMENTE)`, criado em `gerar_instancia` e passado às
+    outras funções. Com a mesma semente obtêm-se as mesmas bases, os mesmos
+    alvos e as mesmas soluções. Só os tempos medidos variam entre execuções.
     """
     )
     return
@@ -95,7 +139,11 @@ def _(mo):
 @app.function
 def gerar_base(k, m, rng):
     """Gera a matriz G (k × m) com entradas em [0, 1]; a linha i é o vetor g_i."""
-    raise NotImplementedError
+    G = np.zeros((k, m))                
+    for i in range(k):               
+        for j in range(m):
+            G[i, j] = rng.uniform(0.0, 1.0)
+    return G
 
 
 @app.function

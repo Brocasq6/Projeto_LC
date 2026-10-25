@@ -4,7 +4,7 @@ Este ficheiro guarda as transcrições de apoio usadas durante a elaboração. A
 
 ## Declaração de uso de LLMs
 
-Ferramenta usada: **Claude**. Os registos 1 e 2 vêm da conversa de apoio ao trabalho; o registo 3 corresponde à geração do esqueleto dos ficheiros.
+Ferramenta usada: **Claude**. Os registos abaixo vêm da conversa de apoio ao trabalho.
 
 
 ## Registo 1
@@ -134,17 +134,55 @@ Ferramenta usada: **Claude**. Os registos 1 e 2 vêm da conversa de apoio ao tra
 
 ## Registo 3
 
-### Registo de apoio — esqueleto dos ficheiros
+### Registo de apoio — `gerar_base`
 
     **Prompt (Claude):**
 
-    > quero fazer com a mesma estrutura do anterior. gera me um primeiro ficheiro com as funcoes prontas a preencher, e gera tb os outros ficheiros necessarios com a informacao que tens desta outra conversa
+    > ok. vamos por partes. vamos desenvolver a primeira funcao, guia me, sem solucoes
 
     **Resposta do LLM:**
 
     ---
 
-    Gerou `cvp_reticulados.py` (notebook Marimo com as secções e as funções da tabela do Registo 2, cada uma só com a documentação e `...`), `test_cvp_reticulados.py` (os nove testes do Registo 2, ainda por implementar) e este apêndice. Não contém soluções.
+    **Função 1: `gerar_base(k, m, rng)`**
+
+    **O que faz.** Cria a matriz $G$ com os $k$ vetores da base. Cada vetor vive em $\mathbb{R}^m$ e cada entrada é uma «probabilidade» (C4).
+
+    **Entradas e saída**
+
+    | Parâmetro | O que é |
+    | --- | --- |
+    | `k` | número de vetores (linhas) |
+    | `m` | dimensão de cada vetor (colunas) |
+    | `rng` | gerador aleatório do NumPy, criado fora da função |
+    | devolve | um `np.ndarray` de forma `(k, m)` em que a linha `i` é $g_i$ |
+
+    **Perguntas para pensares antes de escrever**
+
+    1. **Que distribuição usar?** O enunciado diz que as entradas são geradas aleatoriamente em $[0,1]$. Que distribuição dá a mesma probabilidade a qualquer valor desse intervalo?
+    2. **Porque é que o `rng` vem de fora?** Pensa na semente fixa e na reprodutibilidade. Lembra-te de que no TP1.1 fixaste `random_seed = 0` no CP-SAT. Se a função criasse o seu próprio gerador, o que acontecia quando `gerar_instancia` a chamasse várias vezes?
+    3. **Linhas ou colunas?** Decidimos que cada $g_i$ é uma linha. Confirma que isto bate certo com $t = G^\top u$ e $x = G^\top z$: que forma tem $G^\top u$ se $G$ for $k\times m$ e $u$ tiver $k$ entradas?
+
+    **Pistas**
+
+    - O objeto `rng` (um `numpy.random.Generator`) tem métodos para várias distribuições. Procura na documentação do NumPy o método da distribuição que escolheste na pergunta 1.
+    - Esse método aceita os limites do intervalo e um argumento para a forma do resultado. Assim não precisas de ciclos `for`: a função cabe numa linha.
+    - Usa só o `rng` que recebes e nunca `np.random.qualquer_coisa` diretamente. Senão os testes de reprodutibilidade falham.
+
+    **Como verificas**
+
+    No fim de uma célula, ou num terminal:
+
+    ```python
+    G = gerar_base(3, 6, np.random.default_rng(0))
+    G.shape, G.min(), G.max()
+    ```
+
+    Deve dar a forma `(3, 6)` e valores entre 0 e 1. Corre também a mesma linha duas vezes com a mesma semente: o resultado tem de ser igual.
+
+    O teste correspondente é `test_gerar_base_dimensoes_e_intervalo`. Mais tarde, `test_reprodutibilidade_com_semente` também vai depender desta função.
+
+    Quando tiveres a tua versão, cola-a aqui e eu revejo-a contigo antes de passarmos à `verificar_base`.
 
 
-## Link da conversa: (colar aqui o link da conversa com o Claude)
+## Link da conversa: https://claude.ai/share/5859e7ce-c1cb-4b69-bcdc-bc465fc54d0d
