@@ -149,7 +149,12 @@ def gerar_base(k, m, rng):
 @app.function
 def verificar_base(G):
     """Devolve True se as k linhas de G são linearmente independentes (C1)."""
-    raise NotImplementedError
+    # LLM (Claude): código gerado pelo Claude.
+    k, m = G.shape                              # k vetores, cada um com m componentes
+    if k > m:                                   # em R^m há no máximo m vetores independentes
+        return False
+    caracteristica = np.linalg.matrix_rank(G)   # nº de linhas independentes (SVD com tolerância)
+    return bool(caracteristica == k)            # independentes sse a característica é k
 
 
 @app.function
