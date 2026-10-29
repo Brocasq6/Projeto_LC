@@ -143,4 +143,73 @@ Ferramenta usada: **Claude**. Os registos abaixo vêm da conversa de apoio ao tr
     Quando tiveres as duas funções feitas, envia-mas e eu reviso antes de passarmos a `celulas_finais` e `vizinhos`.
 
 
+## Registo 4
+
+### Registo de apoio — guia para `celulas_finais` e `vizinhos`
+
+    **Prompt (Claude):**
+
+    > otimo. vamos prosseguir com as proximas duas funcoes
+
+    **Resposta do LLM:**
+
+    ---
+
+    Checando a união dos três conjuntos de células
+
+    As duas funções seguintes são `celulas_finais` e `vizinhos`. A primeira fecha a moldura da grelha; a segunda define quem conta para a regra B3/S23 de cada célula.
+
+    **`celulas_finais(n)`**
+
+    O que deve devolver: as células com um índice igual a `n+1` que não sejam iniciais.
+
+    O «não sejam iniciais» do enunciado é a pista principal. A forma mais direta de cumprir essa condição é reaproveitar `celulas_iniciais`, em vez de repetir à mão a decisão sobre os cantos. Assim, se um dia mudares a decisão numa função, a outra acompanha.
+
+    Pontos de atenção:
+
+    - Cantos. A decisão que tomaste sobre `(0, n+1)`, `(n+1, 0)` e `(n+1, n+1)` tem de dar exatamente $2n+3$ células finais.
+    - Repetidos. A mesma armadilha da função anterior: a linha `i = n+1` e a coluna `j = n+1` partilham uma célula.
+    - Ordem. Usa a mesma convenção de lista ou conjunto que escolheste para as outras duas funções.
+
+    Como verificar: as três funções juntas têm de cobrir a moldura inteira, de 0 a `n+1` nos dois eixos, sem sobreposições. As contagens batem certo, porque $n^2+(2n+1)+(2n+3)=(n+2)^2$. Por isso, confirma:
+
+    - que a união dos três conjuntos é exatamente o quadrado de `(n+2)×(n+2)` posições;
+    - que nenhum par de conjuntos se interseta.
+
+    Esta é a melhor prova de que os cantos ficaram bem decididos, e é praticamente o `test_conjuntos_disjuntos`.
+
+    **`vizinhos(i, j, n)`**
+
+    O que deve devolver: as células à distância 1 de `(i, j)` segundo o enunciado, $\max(|i_0-i_1|, |j_0-j_1|)=1$.
+
+    Antes de programar, decide duas coisas:
+
+    1. A célula conta como vizinha de si própria? Aplica a fórmula a `(i, j)` com ela mesma e vê o que dá.
+    2. Para que células é chamada a função? Só as células normais mudam de estado, por isso só elas precisam dos vizinhos. Repara que, se `(i, j)` for normal, todos os vizinhos caem dentro da moldura de 0 a `n+1`: nunca saem da grelha. Se a função for chamada para uma célula da moldura, isso já não é verdade. Escolhe entre:
+       - aceitar só células normais e lançar `ValueError` para as outras;
+       - aceitar qualquer célula e filtrar as posições que não existem.
+
+       Escolhe uma e justifica-a numa frase.
+
+    Implementação: há duas formas razoáveis.
+
+    - Gerar os deslocamentos possíveis à volta de `(i, j)`.
+    - Percorrer as posições candidatas e ficar com as que cumprem a condição do enunciado.
+
+    A segunda segue a definição à letra, o que dá jeito para a justificação no relatório. A primeira é mais curta. Qualquer uma serve.
+
+    Eficiência (opcional): `vizinhos` vai ser chamada para cada célula sempre que construíres uma transição. Com N = 17 não faz diferença. Se mais à frente quiseres testar grelhas maiores, podes calcular os vizinhos uma vez e guardá-los num dicionário.
+
+    Como verificar: é o `test_vizinhanca`.
+
+    - Célula interior, por exemplo `(5, 5)`: deve ter o número de vizinhos que esperas, todos normais.
+    - Canto `(1, 1)`: deve ter o mesmo número de vizinhos. Alguns serão iniciais; confirma quais.
+    - Canto `(1, n)`: é o caso mais revelador, porque os vizinhos misturam células normais, iniciais e finais. Se a decisão sobre `(0, n+1)` estiver errada, é aqui que se nota.
+    - Canto `(n, n)`: os vizinhos fora da grelha normal devem ser todos finais.
+
+    Uma nota para mais à frente: `vizinhos` devolve só posições. Saber se cada vizinha está viva (variável do solver nas normais, constante nas iniciais e finais) é trabalho de `valor_celula`. Mantém essa separação: assim, `vizinhos` serve tanto para o modelo pySMT como para o simulador concreto.
+
+    Quando tiveres estas duas funções, podes trocar o `skipTest` de `test_numero_de_celulas`, `test_conjuntos_disjuntos` e `test_vizinhanca` pelas verificações. A seguir vem `sortear_iniciais`, que fecha a secção 3.
+
+
 ## Link da conversa: (colar aqui o link da conversa com o Claude)

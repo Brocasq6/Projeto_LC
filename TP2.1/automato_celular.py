@@ -125,25 +125,47 @@ def _(mo):
 @app.function
 def celulas_normais(n=N):
     """Lista das N×N células normais (i, j), com i, j em 1..n."""
-    raise NotImplementedError("TODO")
+    celulas = []
+    for i in range(1, n + 1):  # range exclui o fim, por isso vai até n + 1
+        for j in range(1, n + 1):
+            celulas.append((i, j))
+    return celulas
 
 
 @app.function
 def celulas_iniciais(n=N):
     """Lista das 2n+1 células iniciais: (i, j) em {0..n}² com i = 0 ou j = 0."""
-    raise NotImplementedError("TODO")
+    celulas = []
+    for i in range(0, n + 1):
+        for j in range(0, n + 1):
+            if i == 0 or j == 0:  # o "ou" conta (0, 0) uma só vez
+                celulas.append((i, j))
+    return celulas
 
 
 @app.function
 def celulas_finais(n=N):
-    """Lista das 2n+3 células finais: as restantes da moldura, incluindo os cantos (0, n+1) e (n+1, 0)."""
-    raise NotImplementedError("TODO")
+    """Lista das 2n+3 células finais: as restantes da moldura,
+      incluindo os cantos (0, n+1) e (n+1, 0)."""
+    iniciais = celulas_iniciais(n)
+    celulas = []
+    for i in range(0, n + 2):
+        for j in range(0, n + 2):
+            if (i == n + 1 or j == n + 1) and (i, j) not in iniciais:
+                celulas.append((i, j))
+    return celulas
 
-
-@app.function
 def vizinhos(i, j, n=N):
-    """Células vizinhas de (i, j) segundo max(|i0-i1|, |j0-j1|) = 1 (incluindo iniciais e finais)."""
-    raise NotImplementedError("TODO")
+    """Células vizinhas de (i, j) segundo max(|i0-i1|, |j0-j1|) = 1 
+    (incluindo iniciais e finais)."""
+    if not (1 <= i <= n and 1 <= j <= n):
+        raise ValueError(f"({i}, {j}) não é uma célula normal")
+    lista = []
+    for i1 in range(i - 1, i + 2):
+        for j1 in range(j - 1, j + 2):
+            if max(abs(i - i1), abs(j - j1)) == 1:
+                lista.append((i1, j1))
+    return lista
 
 
 @app.function
@@ -459,11 +481,25 @@ def _(mo):
 
     | Função no código | Registo | Contributo |
     | --- | --- | --- |
-    | | | |
+    | `celulas_normais` | 3 | Guia do LLM; |
+    | `celulas_iniciais` | 3 | Guia do LLM; |
 
     ### Diferenças entre a conversa e o código final
 
-    - _TODO_
+    - **Ferramenta de verificação.** No Registo 2 o LLM recomendou o nuXmv e
+      sugeriu não usar BMC. Não seguimos essa recomendação: usamos pySMT com
+      Z3 e BMC, como na ficha 7, por serem as ferramentas e a técnica da
+      cadeira.
+    - **Funções de verificação.** A estrutura do Registo 1 tinha
+      `construir_sistema` e `verificar`, pensadas para um model checker
+      externo. Foram substituídas por `fabricar_fsm`, que devolve
+      `(declare, init, trans)`, e pelas funções genéricas `bmc_always` e
+      `bmc_eventually`, com a mesma assinatura da ficha 7.
+    - **Funções acrescentadas.** `construir_fronteira` (valores fixos da
+      moldura) e `extrair_traco` (leitura do traço a partir do modelo do
+      solver), que não existiam na estrutura proposta.
+    - **Nomes dos ficheiros.** `game_of_life_fsm.py` passou a
+      `automato_celular.py`, e o apêndice foi dividido por elemento do grupo.
     """
     )
     return
