@@ -10,7 +10,7 @@
 
 import marimo
 
-__generated_with = "0.16.5"
+__generated_with = "0.25.1"
 app = marimo.App(width="full")
 
 with app.setup:
@@ -38,19 +38,19 @@ with app.setup:
 
     SEMENTE = 0  # semente para sortear as células iniciais (resultados reproduzíveis)
     K_MAX = 10  # número máximo de estados dos traços explorados pelo BMC
-    SOLVER = "z3"  # solver SMT usado pelo pySMT
+    SOLVER = "z3"
 
 
 @app.cell
 def _():
     import marimo as mo
+
     return (mo,)
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     # Exercício 1 — Game of Life como máquina de estados finita
 
     ## 1. Descrição do problema e abordagem
@@ -64,15 +64,13 @@ def _(mo):
     **Estratégia.** O autómato é um FOTS (`declare`, `init`, `trans`), como na
     ficha 7, e as propriedades são verificadas com BMC através de duas funções
     genéricas, `bmc_always` ($G\,\phi$) e `bmc_eventually` ($F\,\phi$).
-    """
-    )
+    """)
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     ## 2. Escolhas
 
     - **Ferramenta:** pySMT com Z3, a ferramenta da cadeira para BMC.
@@ -88,15 +86,13 @@ def _(mo):
       `bmc_eventually`; o contra-exemplo é um traço com lacete.
     - **Limite:** sem contra-exemplo até `K_MAX`, o resultado só vale para
       traços desse tamanho.
-    """
-    )
+    """)
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     ## 3. Geometria da grelha
 
     A grelha completa tem índices em $\{0..N+1\}^2$: as $N^2$ células normais e
@@ -117,8 +113,7 @@ def _(mo):
     obtém $(2N+1) + (2N+3) = 4N+4$, a moldura completa. A escolha tem efeito:
     estes cantos são vizinhos das células normais $(1, N)$ e $(N, 1)$, que
     passam a ver ali uma célula sempre morta, em vez de uma sorteada.
-    """
-    )
+    """)
     return
 
 
@@ -155,35 +150,43 @@ def celulas_finais(n=N):
                 celulas.append((i, j))
     return celulas
 
+
+@app.function
 def vizinhos(i, j, n=N):
-    """Células vizinhas de (i, j) segundo max(|i0-i1|, |j0-j1|) = 1 
-    (incluindo iniciais e finais)."""
+    """Lista dos 8 vizinhos da célula normal (i, j): as células (a, b) com
+    max(|i - a|, |j - b|) = 1. Só aceita células normais, porque só estas mudam
+    de estado; assim os vizinhos caem sempre dentro da moldura {0..n+1}²."""
     if not (1 <= i <= n and 1 <= j <= n):
-        raise ValueError(f"({i}, {j}) não é uma célula normal")
-    lista = []
-    for i1 in range(i - 1, i + 2):
-        for j1 in range(j - 1, j + 2):
-            if max(abs(i - i1), abs(j - j1)) == 1:
-                lista.append((i1, j1))
-    return lista
+        raise ValueError(f"({i}, {j}) não é uma célula normal para n = {n}")
+    resultado = []
+    for a, b in product(range(i - 1, i + 2), range(j - 1, j + 2)):
+        if max(abs(i - a), abs(j - b)) == 1:  # a própria célula dá 0 e fica de fora
+            resultado.append((a, b))
+    return resultado
 
 
 @app.function
 def sortear_iniciais(n=N, semente=SEMENTE):
     """Dicionário célula inicial -> 0/1, sorteado com probabilidade 1/2 e semente fixa."""
-    raise NotImplementedError("TODO")
+    rng = random.Random(semente)  # gerador local: não depende do random global
+    valores = {}
+    for celula in celulas_iniciais(n):  # lista com ordem fixa -> resultado reproduzível
+        valores[celula] = int(rng.random() < 0.5)  # probabilidade 1/2; int em vez de bool
+    return valores
 
 
 @app.function
 def construir_fronteira(n=N, semente=SEMENTE):
     """Dicionário com o valor fixo de todas as células da moldura: iniciais sorteadas e finais a 0."""
-    raise NotImplementedError("TODO")
+    fronteira = dict(sortear_iniciais(n, semente))  # cópia: dicionário novo
+    for celula in celulas_finais(n):
+        fronteira[celula] = 0  # as células finais estão sempre mortas
+    return fronteira
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     ## 4. Estados e relações de transição
 
     `declarar_estado(k)` cria a $k$-ésima
@@ -196,51 +199,91 @@ def _(mo):
     Como o BMC é genérico, recebe `declare(i)`, `init(s)` e `trans(s, p)` só
     com os estados como argumentos. `fabricar_fsm` fixa a moldura, o modo e
     $N$ e devolve essas três funções prontas a passar ao BMC.
-    """
-    )
+    """)
     return
 
 
 @app.function
 def declarar_estado(k, n=N):
     """Cria as variáveis do estado número k do traço; devolve um dicionário célula -> variável."""
-    raise NotImplementedError("TODO")
+    estado = {}
+    for (i, j) in celulas_normais(n):
+        # separadores no nome evitam colisões, ex.: (1, 11) e (11, 1) no mesmo estado
+        estado[(i, j)] = Symbol(f"c_{i}_{j}_{k}", BOOL)
+    return estado
 
 
 @app.function
 def valor_celula(s, celula, fronteira):
     """Termo/valor de uma célula no estado s: variável se for normal, constante se for inicial ou final."""
-    raise NotImplementedError("TODO")
+    if celula in s:  # célula normal: o valor é decidido pelo solver
+        return s[celula]
+    if celula in fronteira:  # célula da moldura: constante booleana
+        return TRUE() if fronteira[celula] == 1 else FALSE()
+    raise ValueError(f"{celula} não pertence à grelha")
 
 
 @app.function
 def init(s, fronteira, n=N):
     """Fórmula que caracteriza o estado inicial."""
-    raise NotImplementedError("TODO")
+    condicoes = []
+    for (i, j) in celulas_normais(n):
+        if i <= 3 and j <= 3:  # bloco 3×3 do canto: viva
+            condicoes.append(s[(i, j)])
+        else:  # todas as outras células normais: morta
+            condicoes.append(Not(s[(i, j)]))
+    return And(condicoes)
 
 
 @app.function
 def proximo_valor(s, celula, fronteira, n=N):
     """Fórmula do valor seguinte de uma célula normal segundo a regra B3/S23."""
-    raise NotImplementedError("TODO")
+    i, j = celula
+    termos = []
+    vivos_moldura = 0
+    for v in vizinhos(i, j, n):
+        if v in s:  # vizinha normal: conta 1 se a variável for verdadeira
+            termos.append(Ite(valor_celula(s, v, fronteira), Int(1), Int(0)))
+        else:  # vizinha da moldura: valor constante, somado logo em Python
+            vivos_moldura += fronteira[v]
+    termos.append(Int(vivos_moldura))
+    contagem = Plus(termos)
+    # B3/S23 na forma compacta: viva sse 3 vizinhos, ou viva e 2 vizinhos
+    return Or(Equals(contagem, Int(3)), And(s[celula], Equals(contagem, Int(2))))
 
 
 @app.function
 def trans_sincrona(s, p, fronteira, n=N):
     """Relação de transição em que todas as células normais transitam em simultâneo."""
-    raise NotImplementedError("TODO")
+    # cada célula de p toma o valor da regra calculado só a partir de s
+    return And([Iff(p[c], proximo_valor(s, c, fronteira, n)) for c in celulas_normais(n)])
 
 
 @app.function
 def trans_assincrona(s, p, fronteira, n=N):
     """Relação de transição em que uma e só uma célula normal transita de estado (lacete se nenhuma puder mudar)."""
-    raise NotImplementedError("TODO")
+    restricoes = []
+    mudancas = []  # termos 1/0 para contar as células que mudaram
+    podem = []  # condições «a célula pode mudar»
+    for c in celulas_normais(n):
+        pode_mudar = Not(Iff(proximo_valor(s, c, fronteira, n), s[c]))
+        mudou = Not(Iff(p[c], s[c]))
+        restricoes.append(Or(Not(mudou), pode_mudar))  # mudou => pode_mudar
+        mudancas.append(Ite(mudou, Int(1), Int(0)))
+        podem.append(pode_mudar)
+    # muda exatamente uma se alguma puder mudar; nenhuma se o estado for estável
+    restricoes.append(Equals(Plus(mudancas), Ite(Or(podem), Int(1), Int(0))))
+    return And(restricoes)
 
 
 @app.function
 def trans(s, p, fronteira, modo=MODO_TRANSICAO, n=N):
     """Escolhe a relação de transição de acordo com o parâmetro `modo`."""
-    raise NotImplementedError("TODO")
+    if modo == "sincrona":
+        return trans_sincrona(s, p, fronteira, n)
+    if modo == "assincrona":
+        return trans_assincrona(s, p, fronteira, n)
+    raise ValueError(f"modo inválido: {modo!r}; valores aceites: {MODOS}")
 
 
 @app.function
@@ -257,8 +300,7 @@ def fabricar_fsm(fronteira, modo=MODO_TRANSICAO, n=N):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     ## 5. Simulação concreta (validação do modelo)
 
     Simulador em Python puro, independente do solver, com dois papéis:
@@ -269,8 +311,7 @@ def _(mo):
       execução válida da FSM: o primeiro estado é o inicial, e cada par de
       estados consecutivos respeita a regra no modo escolhido. Isto valida o
       modelo simbólico de forma independente.
-    """
-    )
+    """)
     return
 
 
@@ -302,14 +343,15 @@ def apresentar_grelha(grelha, fronteira=None, n=N):
 def _(mo):
     # TODO: controlo interativo para percorrer a simulação (ex.: mo.ui.slider com o número de passos
     # e mo.ui.dropdown com o modo de transição) e mostrar a grelha correspondente.
-    mo.md("_Simulação por implementar._")
+    mo.md("""
+    _Simulação por implementar._
+    """)
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     ## 6. Bounded model checking genérico
 
     As duas funções servem para qualquer FOTS: recebem
@@ -329,8 +371,7 @@ def _(mo):
     Ambas devolvem um dicionário com o resultado (`"contra-exemplo"` ou
     `"sem contra-exemplo até K"`), o número de estados, o traço (valores das
     variáveis em cada estado) e o tempo.
-    """
-    )
+    """)
     return
 
 
@@ -354,8 +395,7 @@ def bmc_eventually(declare, init, trans, prop, K):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     ## 7. Propriedade 1 — nunca se alcança o estado de erro
 
     **Formulação.** $G\,\neg\mathit{erro}$: em todos os estados alcançáveis há
@@ -371,8 +411,7 @@ def _(mo):
     - *Sem contra-exemplo até `K_MAX`:* a propriedade vale nos primeiros
       `K_MAX` estados, mas isto **não é uma prova** para execuções mais longas.
       Nesse caso o resultado é inconclusivo e indicamos o limite atingido.
-    """
-    )
+    """)
     return
 
 
@@ -384,8 +423,7 @@ def verificar_nunca_erro(fronteira, modo=MODO_TRANSICAO, k_max=K_MAX, n=N):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     ## 8. Propriedade 2 — nenhuma célula normal permanentemente morta ou viva
 
     **Formulação.** Para cada célula normal $c$:
@@ -407,8 +445,7 @@ def _(mo):
     escolher que células verificar primeiro. No modo assíncrono há muitas
     execuções possíveis, e uma simulação não chega para excluir um
     contra-exemplo. Aí só o BMC responde.
-    """
-    )
+    """)
     return
 
 
@@ -426,15 +463,13 @@ def verificar_todas_celulas(fronteira, modo=MODO_TRANSICAO, k_max=K_MAX, n=N):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     ## 9. Resultados
 
     Execução das duas propriedades nos dois modos de transição, com a mesma
     moldura (`SEMENTE`). Cada contra-exemplo é confirmado pelo simulador antes
     de ser apresentado.
-    """
-    )
+    """)
     return
 
 
@@ -447,14 +482,15 @@ def _(mo):
     #   - validar os contra-exemplos com traco_e_valido;
     #   - juntar tudo numa tabela (modo, propriedade, resultado, profundidade, tempo).
     # Mostrar os contra-exemplos com apresentar_grelha.
-    mo.md("_Resultados por implementar._")
+    mo.md("""
+    _Resultados por implementar._
+    """)
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     ## 10. Conclusão
 
     _TODO: resumir os resultados de cada propriedade em cada modo, comparar as
@@ -463,15 +499,13 @@ def _(mo):
     da secção 9._
 
     Os testes automáticos estão no notebook `test_automato_celular.py`.
-    """
-    )
+    """)
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     ## Uso de ferramentas LLM
 
     _TODO: identificar a(s) ferramenta(s) usadas e o link da conversa._
@@ -500,8 +534,7 @@ def _(mo):
       solver), que não existiam na estrutura proposta.
     - **Nomes dos ficheiros.** `game_of_life_fsm.py` passou a
       `automato_celular.py`, e o apêndice foi dividido por elemento do grupo.
-    """
-    )
+    """)
     return
 
 
