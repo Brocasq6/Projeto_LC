@@ -288,14 +288,28 @@ def trans(s, p, fronteira, modo=MODO_TRANSICAO, n=N):
 
 @app.function
 def erro(s, n=N):
-    """Fórmula do estado de erro: todas as células normais mortas."""
-    raise NotImplementedError("TODO")
+    """Fórmula do estado de erro: todas as células normais mortas.
+    Não recebe fronteira: o enunciado define o erro só com as células normais."""
+    return And([Not(s[c]) for c in celulas_normais(n)])
 
 
 @app.function
 def fabricar_fsm(fronteira, modo=MODO_TRANSICAO, n=N):
     """Devolve (declare, init, trans) só com estados como argumentos, prontos para o BMC genérico."""
-    raise NotImplementedError("TODO")
+    if modo not in MODOS:  # o erro aparece já aqui, e não a meio do BMC
+        raise ValueError(f"modo inválido: {modo!r}; valores aceites: {MODOS}")
+
+    # nomes diferentes de init/trans, para chamarem as funções globais e não a si próprias
+    def declare_fsm(k):
+        return declarar_estado(k, n)
+
+    def init_fsm(s):
+        return init(s, fronteira, n)
+
+    def trans_fsm(s, p):
+        return trans(s, p, fronteira, modo, n)
+
+    return declare_fsm, init_fsm, trans_fsm
 
 
 @app.cell(hide_code=True)
@@ -318,25 +332,116 @@ def _(mo):
 @app.function
 def estado_inicial_concreto(n=N):
     """Grelha inicial concreta (dicionário célula normal -> 0/1)."""
-    raise NotImplementedError("TODO")
+    grelha = {}
+    for (i, j) in celulas_normais(n):
+        grelha[(i, j)] = 1 if i <= 3 and j <= 3 else 0  # bloco 3×3 vivo
+    return grelha
+
+
+@app.function
+def aplicar_regra(grelha, fronteira, n=N):
+    """Dicionário célula normal -> valor que a regra B3/S23 lhe dá, calculado a partir de grelha."""
+    resultado = {}
+    for celula in celulas_normais(n):
+        vivos = 0
+        for v in vizinhos(*celula, n):
+            vivos += grelha[v] if v in grelha else fronteira[v]  # normal: grelha; moldura: fronteira
+        if grelha[celula] == 1:
+            resultado[celula] = 1 if vivos in (2, 3) else 0  # sobrevivência
+        else:
+            resultado[celula] = 1 if vivos == 3 else 0  # nascimento
+    return resultado
 
 
 @app.function
 def passo_concreto(grelha, fronteira, modo=MODO_TRANSICAO, rng=None, n=N):
     """Aplica uma transição concreta à grelha (no modo assíncrono, a célula que muda é escolhida por rng)."""
-    raise NotImplementedError("TODO")
+    if modo not in MODOS:
+        raise ValueError(f"modo inválido: {modo!r}; valores aceites: {MODOS}")
+    regra = aplicar_regra(grelha, fronteira, n)  # dicionário novo; a grelha não é alterada
+
+    if modo == "sincrona":
+        return regra
+
+    if rng is None:
+        raise ValueError("o modo assíncrono precisa de um gerador rng, ex.: random.Random(semente)")
+    instaveis = [c for c in celulas_normais(n) if regra[c] != grelha[c]]
+    nova = dict(grelha)
+    if instaveis:  # se nenhuma for instável, o estado repete-se (lacete)
+        c = rng.choice(instaveis)
+        nova[c] = regra[c]
+    return nova
 
 
 @app.function
 def traco_e_valido(traco, fronteira, modo=MODO_TRANSICAO, n=N):
-    """Verifica se uma sequência de grelhas é uma execução válida da FSM; devolve a lista de erros."""
-    raise NotImplementedError("TODO")
+    """Verifica se uma sequência de grelhas é uma execução válida da FSM; devolve a lista de erros
+    (lista vazia = traço válido). Aceita valores 0/1 ou True/False.
+    Para validar um lacete, quem chama acrescenta ao fim do traço uma cópia do estado onde o
+    lacete começa; assim a transição de regresso também é verificada."""
+    if modo not in MODOS:
+        raise ValueError(f"modo inválido: {modo!r}; valores aceites: {MODOS}")
+    if not traco:
+        return ["traço vazio: não há execução"]
+
+    erros = []
+    normais = celulas_normais(n)
+
+    # Passo 1 — normalizar para 0/1 e verificar o formato de cada grelha
+    grelhas = []
+    for k, g in enumerate(traco):
+        if set(g) != set(normais):
+            erros.append(f"estado {k}: as chaves não são as células normais de uma grelha {n}×{n}")
+            return erros
+        g = {c: int(g[c]) for c in normais}
+        maus = [c for c in normais if g[c] not in (0, 1)]
+        if maus:
+            erros.append(f"estado {k}: valores fora de {{0, 1}} em {maus}")
+            return erros
+        grelhas.append(g)
+
+    # Passo 2 — o primeiro estado é o inicial
+    inicial = estado_inicial_concreto(n)
+    diferentes = [c for c in normais if grelhas[0][c] != inicial[c]]
+    if diferentes:
+        erros.append(f"estado 0: não é o estado inicial; diferem as células {diferentes}")
+
+    # Passo 3 — cada par consecutivo respeita a transição
+    for k in range(len(grelhas) - 1):
+        a, b = grelhas[k], grelhas[k + 1]
+        regra = aplicar_regra(a, fronteira, n)
+        if modo == "sincrona":
+            for c in normais:
+                if b[c] != regra[c]:
+                    erros.append(f"passo {k}->{k + 1}: célula {c} devia valer {regra[c]}, vale {b[c]}")
+        else:
+            instaveis = [c for c in normais if regra[c] != a[c]]
+            mudaram = [c for c in normais if b[c] != a[c]]
+            if not instaveis and mudaram:
+                erros.append(f"passo {k}->{k + 1}: estado estável, mas mudaram {mudaram}")
+            elif instaveis and len(mudaram) != 1:
+                erros.append(f"passo {k}->{k + 1}: devia mudar exatamente uma célula instável, "
+                             f"mudaram {len(mudaram)}: {mudaram}")
+            elif instaveis and mudaram[0] not in instaveis:
+                erros.append(f"passo {k}->{k + 1}: a célula {mudaram[0]} mudou, mas não era instável")
+    return erros
 
 
 @app.function
 def apresentar_grelha(grelha, fronteira=None, n=N):
-    """Tabela (pandas) da grelha para mostrar no Marimo, com ou sem a moldura de células iniciais/finais."""
-    raise NotImplementedError("TODO")
+    """Tabela (pandas) da grelha para mostrar no Marimo, com ou sem a moldura de células iniciais/finais.
+    Legenda: ■ viva e · morta nas células normais; ● viva e ○ morta na moldura."""
+    indices = range(1, n + 1) if fronteira is None else range(0, n + 2)
+    linhas = []
+    for i in indices:
+        linha = []
+        for j in indices:
+            if (i, j) in grelha:
+                linha.append("■" if int(grelha[(i, j)]) == 1 else "·")
+            else:
+                linha.append("●" if int(fronteira[(i, j)]) == 1 else "○")
+        linhas.append(linha)
+    return pd.DataFrame(linhas, index=list(indices), columns=list(indices))
 
 
 @app.cell
