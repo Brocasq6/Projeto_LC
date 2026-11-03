@@ -4,6 +4,7 @@
 #     "marimo>=0.16.5",
 #     "pandas",
 #     "pysmt",
+#     "z3-solver",
 # ]
 # ///
 # Solver SMT: Z3, instalado com `pysmt-install --z3` (como na ficha 1).
@@ -21,7 +22,7 @@ with app.setup:
 
     import pandas as pd
     from pysmt.shortcuts import (
-        FALSE, TRUE, And, Equals, Iff, Int, Ite, Not, Or, Plus, Solver, Symbol,
+        FALSE, TRUE, And, Equals, EqualsOrIff, Iff, Int, Ite, Not, Or, Plus, Solver, Symbol,
     )
     from pysmt.typing import BOOL
 
@@ -547,29 +548,6 @@ def _(mo):
     return
 
 
-@app.cell
-def _():
-    from pysmt.shortcuts import (
-        FALSE, TRUE, And, Equals, EqualsOrIff, Iff, Int, Ite, Not, Or, Plus, Solver, Symbol,
-    )
-
-    return (
-        And,
-        Equals,
-        EqualsOrIff,
-        FALSE,
-        Iff,
-        Int,
-        Ite,
-        Not,
-        Or,
-        Plus,
-        Solver,
-        Symbol,
-        TRUE,
-    )
-
-
 @app.function
 def extrair_traco(modelo, estados):
     """Converte o modelo do solver numa lista de dicionários (variável -> valor Python), um por estado."""
@@ -604,38 +582,35 @@ def bmc_always(declare, init, trans, inv, K):
             "lacete": None, "tempo": perf_counter() - inicio}
 
 
-@app.cell
-def _(EqualsOrIff):
-    def bmc_eventually(declare, init, trans, prop, K):
-        """BMC genérico de F prop: procura um lacete onde prop nunca é verdade; devolve resultado, k, traço, início do lacete e tempo."""
-        inicio = perf_counter()
-        with Solver(name=SOLVER) as solver:
-            estados = [declare(0)]
-            solver.add_assertion(init(estados[0]))
-            for k in range(1, K + 1):
-                if k > 1:
-                    estados.append(declare(k - 1))
-                    solver.add_assertion(trans(estados[-2], estados[-1]))
-                solver.add_assertion(Not(prop(estados[-1])))  # permanente: vale em todo o lacete
-                extra = declare(k)  # estado extra que fecha o lacete
-                solver.push()
-                solver.add_assertion(trans(estados[-1], extra))
-                solver.add_assertion(Or([
-                    And([EqualsOrIff(extra[c], anterior[c]) for c in extra]) for anterior in estados
-                ]))
-                if solver.solve():
-                    completo = extrair_traco(solver.get_model(), estados + [extra])
-                    traco, fecho = completo[:-1], completo[-1]
-                    lacete = next((l for l, estado in enumerate(traco) if estado == fecho), None)
-                    if lacete is None:  # não deve acontecer: o solver garantiu que algum estado coincide
-                        raise RuntimeError(f"k = {k}: o estado extra não coincide com nenhum estado do traço")
-                    return {"resultado": "contra-exemplo", "k": k, "traço": traco,
-                            "lacete": lacete, "tempo": perf_counter() - inicio}
-                solver.pop()  # o estado extra e o fecho do lacete só valiam para este k
-        return {"resultado": "sem contra-exemplo até K", "k": K, "traço": None,
-                "lacete": None, "tempo": perf_counter() - inicio}
-
-    return (bmc_eventually,)
+@app.function
+def bmc_eventually(declare, init, trans, prop, K):
+    """BMC genérico de F prop: procura um lacete onde prop nunca é verdade; devolve resultado, k, traço, início do lacete e tempo."""
+    inicio = perf_counter()
+    with Solver(name=SOLVER) as solver:
+        estados = [declare(0)]
+        solver.add_assertion(init(estados[0]))
+        for k in range(1, K + 1):
+            if k > 1:
+                estados.append(declare(k - 1))
+                solver.add_assertion(trans(estados[-2], estados[-1]))
+            solver.add_assertion(Not(prop(estados[-1])))  # permanente: vale em todo o lacete
+            extra = declare(k)  # estado extra que fecha o lacete
+            solver.push()
+            solver.add_assertion(trans(estados[-1], extra))
+            solver.add_assertion(Or([
+                And([EqualsOrIff(extra[c], anterior[c]) for c in extra]) for anterior in estados
+            ]))
+            if solver.solve():
+                completo = extrair_traco(solver.get_model(), estados + [extra])
+                traco, fecho = completo[:-1], completo[-1]
+                lacete = next((l for l, estado in enumerate(traco) if estado == fecho), None)
+                if lacete is None:  # não deve acontecer: o solver garantiu que algum estado coincide
+                    raise RuntimeError(f"k = {k}: o estado extra não coincide com nenhum estado do traço")
+                return {"resultado": "contra-exemplo", "k": k, "traço": traco,
+                        "lacete": lacete, "tempo": perf_counter() - inicio}
+            solver.pop()  # o estado extra e o fecho do lacete só valiam para este k
+    return {"resultado": "sem contra-exemplo até K", "k": K, "traço": None,
+            "lacete": None, "tempo": perf_counter() - inicio}
 
 
 @app.cell(hide_code=True)
@@ -724,75 +699,69 @@ def _(mo):
     return
 
 
-@app.cell
-def _(bmc_eventually):
-    def verificar_permanencia(celula, valor, fronteira, modo=MODO_TRANSICAO, k_max=K_MAX, n=N):
-        """Aplica bmc_eventually a F(célula ≠ valor) (0 = morta, 1 = viva); devolve o dicionário de resultado do BMC."""
-        if celula not in set(celulas_normais(n)):
-            raise ValueError(f"{celula} não é uma célula normal para n = {n}")
-        if valor not in (0, 1):
-            raise ValueError(f"valor tem de ser 0 ou 1, recebido {valor!r}")
+@app.function
+def verificar_permanencia(celula, valor, fronteira, modo=MODO_TRANSICAO, k_max=K_MAX, n=N):
+    """Aplica bmc_eventually a F(célula ≠ valor) (0 = morta, 1 = viva); devolve o dicionário de resultado do BMC."""
+    if celula not in set(celulas_normais(n)):
+        raise ValueError(f"{celula} não é uma célula normal para n = {n}")
+    if valor not in (0, 1):
+        raise ValueError(f"valor tem de ser 0 ou 1, recebido {valor!r}")
 
-        # atalho: se a célula já é diferente de valor no estado inicial, F(célula ≠ valor) vale no estado 0
-        if estado_inicial_concreto(n)[celula] != valor:
-            return {"resultado": "provada no estado inicial", "k": 1, "traço": None,
-                    "lacete": None, "tempo": 0.0, "validação": None}
+    # atalho: se a célula já é diferente de valor no estado inicial, F(célula ≠ valor) vale no estado 0
+    if estado_inicial_concreto(n)[celula] != valor:
+        return {"resultado": "provada no estado inicial", "k": 1, "traço": None,
+                "lacete": None, "tempo": 0.0, "validação": None}
 
-        declare, init_fsm, trans_fsm = fabricar_fsm(fronteira, modo, n)
+    declare, init_fsm, trans_fsm = fabricar_fsm(fronteira, modo, n)
 
-        def prop(s):  # «a célula é diferente de valor»
-            return s[celula] if valor == 0 else Not(s[celula])
+    def prop(s):  # «a célula é diferente de valor»
+        return s[celula] if valor == 0 else Not(s[celula])
 
-        resultado = bmc_eventually(declare, init_fsm, trans_fsm, prop, k_max)
-        resultado["validação"] = None
-        if resultado["traço"] is not None:  # contra-exemplo: conferido pelo simulador
-            traco = resultado["traço"]
-            problemas = traco_e_valido(traco + [traco[resultado["lacete"]]], fronteira, modo, n)
-            mudou = [k for k, g in enumerate(traco) if int(g[celula]) != valor]
-            if mudou:
-                problemas.append(f"a célula {celula} não vale {valor} nos estados {mudou}")
-            resultado["validação"] = problemas
-        return resultado
-
-    return (verificar_permanencia,)
+    resultado = bmc_eventually(declare, init_fsm, trans_fsm, prop, k_max)
+    resultado["validação"] = None
+    if resultado["traço"] is not None:  # contra-exemplo: conferido pelo simulador
+        traco = resultado["traço"]
+        problemas = traco_e_valido(traco + [traco[resultado["lacete"]]], fronteira, modo, n)
+        mudou = [k for k, g in enumerate(traco) if int(g[celula]) != valor]
+        if mudou:
+            problemas.append(f"a célula {celula} não vale {valor} nos estados {mudou}")
+        resultado["validação"] = problemas
+    return resultado
 
 
-@app.cell
-def _(verificar_permanencia):
-    def verificar_todas_celulas(fronteira, modo=MODO_TRANSICAO, k_max=K_MAX, n=N,
-                                celulas=None, parar_no_primeiro=False):
-        """Aplica verificar_permanencia a todas as células normais e devolve uma tabela-resumo.
-        A conclusão global fica em tabela.attrs["conclusão"]: falsa, provada ou inconclusiva até K."""
-        celulas = celulas_normais(n) if celulas is None else celulas
-        linhas = []
-        for c in celulas:
-            for valor in (0, 1):
-                r = verificar_permanencia(c, valor, fronteira, modo, k_max, n)
-                linhas.append({
-                    "célula": c,
-                    "valor testado": "morta" if valor == 0 else "viva",
-                    "resultado": r["resultado"],
-                    "k": r["k"],
-                    "lacete": r["lacete"],
-                    "tempo (s)": round(r["tempo"], 2),
-                    "validação": "—" if r["validação"] is None else ("ok" if not r["validação"] else "falhou"),
-                })
-                if parar_no_primeiro and r["resultado"] == "contra-exemplo":
-                    break
-            if parar_no_primeiro and linhas[-1]["resultado"] == "contra-exemplo":
+@app.function
+def verificar_todas_celulas(fronteira, modo=MODO_TRANSICAO, k_max=K_MAX, n=N,
+                            celulas=None, parar_no_primeiro=False):
+    """Aplica verificar_permanencia a todas as células normais e devolve uma tabela-resumo.
+    A conclusão global fica em tabela.attrs["conclusão"]: falsa, provada ou inconclusiva até K."""
+    celulas = celulas_normais(n) if celulas is None else celulas
+    linhas = []
+    for c in celulas:
+        for valor in (0, 1):
+            r = verificar_permanencia(c, valor, fronteira, modo, k_max, n)
+            linhas.append({
+                "célula": c,
+                "valor testado": "morta" if valor == 0 else "viva",
+                "resultado": r["resultado"],
+                "k": r["k"],
+                "lacete": r["lacete"],
+                "tempo (s)": round(r["tempo"], 2),
+                "validação": "—" if r["validação"] is None else ("ok" if not r["validação"] else "falhou"),
+            })
+            if parar_no_primeiro and r["resultado"] == "contra-exemplo":
                 break
+        if parar_no_primeiro and linhas[-1]["resultado"] == "contra-exemplo":
+            break
 
-        tabela = pd.DataFrame(linhas)
-        resultados = tabela["resultado"]
-        if (resultados == "contra-exemplo").any():
-            tabela.attrs["conclusão"] = "falsa"
-        elif (resultados == "provada no estado inicial").all():
-            tabela.attrs["conclusão"] = "provada"
-        else:
-            tabela.attrs["conclusão"] = "inconclusiva até K"
-        return tabela
-
-    return (verificar_todas_celulas,)
+    tabela = pd.DataFrame(linhas)
+    resultados = tabela["resultado"]
+    if (resultados == "contra-exemplo").any():
+        tabela.attrs["conclusão"] = "falsa"
+    elif (resultados == "provada no estado inicial").all():
+        tabela.attrs["conclusão"] = "provada"
+    else:
+        tabela.attrs["conclusão"] = "inconclusiva até K"
+    return tabela
 
 
 @app.cell(hide_code=True)
@@ -807,17 +776,21 @@ def _(mo):
     return
 
 
-app._unparsable_cell(
-    r"""
-        # Profundidades da secção 9 (ajustar depois de medir os tempos de uma célula)
-        K_ERRO_ASSINCRONA = 15        # >= 10: o erro precisa de pelo menos 9 transições
-        K_PERMANENCIA_ASSINCRONA = 10
-        AMOSTRA_P2_ASSINCRONA = None  # None = todas as células; um número = só as N mais afastadas
-        PARAR_P2_ASSINCRONA = True    # parar no primeiro contra-exemplo da propriedade 2
-        LIMITE_K_SINCRONA = 60        # teto do K das verificações cruzadas no modo síncrono
-    """,
-    name="_"
-)
+@app.cell
+def _():
+    # Profundidades da secção 9 (ajustar depois de medir os tempos de uma célula)
+    K_ERRO_ASSINCRONA = 15        # >= 10: o erro precisa de pelo menos 9 transições
+    K_PERMANENCIA_ASSINCRONA = 10
+    AMOSTRA_P2_ASSINCRONA = None  # None = todas as células; um número = só as N mais afastadas
+    PARAR_P2_ASSINCRONA = True    # parar no primeiro contra-exemplo da propriedade 2
+    LIMITE_K_SINCRONA = 60        # teto do K das verificações cruzadas no modo síncrono
+    return (
+        AMOSTRA_P2_ASSINCRONA,
+        K_ERRO_ASSINCRONA,
+        K_PERMANENCIA_ASSINCRONA,
+        LIMITE_K_SINCRONA,
+        PARAR_P2_ASSINCRONA,
+    )
 
 
 @app.function
@@ -972,7 +945,6 @@ def _(
     mo,
     moldura,
     traco_sinc,
-    verificar_permanencia,
 ):
     mo.stop(not botao_p2_sinc.value,
             mo.md("_Carrega em «Propriedade 2 — verificação cruzada (síncrono)»._"))
@@ -1035,8 +1007,6 @@ def _(
     botao_p2_assinc,
     mo,
     moldura,
-    verificar_permanencia,
-    verificar_todas_celulas,
 ):
     mo.stop(not botao_p2_assinc.value, mo.md("_Carrega em «Propriedade 2 — BMC (assíncrono)»._"))
 
@@ -1193,10 +1163,38 @@ def _(mo):
     mo.md(r"""
     ## 10. Conclusão
 
-    _TODO: resumir os resultados de cada propriedade em cada modo, comparar as
-    duas relações de transição, e discutir limites (tamanho da grelha,
-    profundidade, tempos). Este texto deve ser gerado a partir dos resultados
-    da secção 9._
+    _Texto redigido com apoio de um LLM (Claude) a partir dos resultados da
+    secção 9._
+
+    Resultados com $N = 17$ e a moldura sorteada com `SEMENTE = 0`:
+
+    - **Propriedade 1 (nunca se alcança o erro).**
+      - *Síncrono:* **provada.** O modo é determinista e há um só estado
+        inicial, por isso a simulação percorre todos os estados alcançáveis:
+        157 estados distintos, até a grelha parar num ponto fixo. Nenhum é o
+        estado de erro, e o BMC até $K = 60$ concorda.
+      - *Assíncrono:* **falsa.** O BMC encontra um contra-exemplo com 10
+        estados (9 transições) em que todas as células normais morrem. O traço
+        foi confirmado pelo simulador.
+    - **Propriedade 2 (nenhuma célula fica para sempre morta ou viva).**
+      **Falsa nos dois modos.**
+      - *Síncrono:* 71 células nunca chegam a estar vivas.
+      - *Assíncrono:* o BMC encontra, com $k = 6$, um lacete em que a célula
+        $(1, 17)$ fica sempre morta. O traço também foi confirmado pelo
+        simulador.
+
+    **Comparação dos modos.** No modo síncrono há uma única execução, que a
+    simulação esgota, por isso os resultados são provas. No modo assíncrono o
+    solver escolhe que célula muda em cada passo, o que abre muitas mais
+    execuções. É isso que permite chegar ao estado de erro, que no modo
+    síncrono nunca acontece.
+
+    **Limites.** O BMC só procura traços até $K$ estados, por isso, sem
+    contra-exemplo, o resultado é inconclusivo para lá de $K$. Aqui isso não
+    pesa: o único resultado positivo (propriedade 1 no síncrono) vem da
+    simulação completa, e os resultados negativos são contra-exemplos concretos,
+    validados pelo simulador. Todos os resultados valem para esta moldura;
+    outra semente pode dar resultados diferentes.
 
     Os testes automáticos estão no notebook `test_automato_celular.py`.
     """)
@@ -1207,16 +1205,6 @@ def _(mo):
 def _(mo):
     mo.md(r"""
     ## Uso de ferramentas LLM
-
-    _TODO: identificar a(s) ferramenta(s) usadas e o link da conversa._
-
-    No código, cada função em que houve contributo de um LLM tem um comentário
-    `# LLM (...) — Registo N: ...` logo a seguir à documentação.
-
-    | Função no código | Registo | Contributo |
-    | --- | --- | --- |
-    | `celulas_normais` | 3 | Guia do LLM; |
-    | `celulas_iniciais` | 3 | Guia do LLM; |
 
     ### Diferenças entre a conversa e o código final
 

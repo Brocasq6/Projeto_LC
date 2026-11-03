@@ -212,7 +212,7 @@ Ferramenta usada: **Claude**. Os registos abaixo vêm da conversa de apoio ao tr
     Quando tiveres estas duas funções, podes trocar o `skipTest` de `test_numero_de_celulas`, `test_conjuntos_disjuntos` e `test_vizinhanca` pelas verificações. A seguir vem `sortear_iniciais`, que fecha a secção 3.
 
 
-## Registo 11
+## Registo 5
 
 ### Registo de apoio — testes da geometria da grelha
 
@@ -259,4 +259,4 @@ Ferramenta usada: **Claude**. Os registos abaixo vêm da conversa de apoio ao tr
     Se algum teste falhar, envia-me a mensagem de erro.
 
 
-## Link da conversa: (colar aqui o link da conversa com o Claude)
+## Link da conversa: (https://claude.ai/share/15f59df4-05b5-4b76-ad81-621017166ab4)

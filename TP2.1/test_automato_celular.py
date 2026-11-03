@@ -27,8 +27,9 @@ def _(mo):
     # Testes automáticos — Exercício 1 (Game of Life como FSM)
 
     > **Código gerado por LLM.** Os testes da geometria da grelha
-    > (`TestesGeometria`) e do estado inicial, da regra e das transições
-    > (`TestesEstadoETransicoes`) foram gerados pelo **Claude**. O nosso
+    > (`TestesGeometria`), do estado inicial, da regra e das transições
+    > (`TestesEstadoETransicoes`) e do BMC e das propriedades
+    > (`TestesBMCEPropriedades`) foram gerados pelo **Claude**. O nosso
     > trabalho foi integrá-los no projeto, executá-los e confirmar que passam.
     > No código, cada bloco gerado está delimitado pelos comentários
     > `INÍCIO DO CÓDIGO GERADO POR LLM` e `FIM DO CÓDIGO GERADO POR LLM`.
@@ -37,10 +38,6 @@ def _(mo):
 
     > gera me agora os testes, so para confirmar que o codigo esta correto
 
-    Os testes das funções ainda não implementadas estão na classe
-    `TestesPorImplementar`, marcados como ignorados (`skipTest`). Substituir o
-    `skipTest` pela verificação descrita na docstring à medida que essas
-    funções forem feitas.
     """
     )
     return
@@ -82,15 +79,15 @@ def _(mo):
     | `test_assincrona_muda_uma_celula` | `trans_assincrona` | A partir do estado inicial muda exatamente uma célula; num estado estável a única transição é o lacete. |
     | `test_parametro_seleciona_transicao` | `trans` | `modo` escolhe a relação certa e um modo inválido dá `ValueError`. |
 
-    ### Por implementar
+    ### BMC e propriedades (implementados)
 
-    | Teste | O que vai verificar |
-    | --- | --- |
-    | `test_sincrona_coincide_com_simulador` | A transição síncrona simbólica e o simulador concreto dão o mesmo estado seguinte. |
-    | `test_bmc_always_programa_da_ficha7` | No programa da ficha 7, `bmc_always` não encontra contra-exemplo para $G\,(x \ge 0)$ e encontra um para $G\,(x \ne 1)$. |
-    | `test_bmc_eventually_programa_da_ficha7` | No programa da ficha 7, `bmc_eventually` não encontra contra-exemplo para $F\,(pc = 2)$ e encontra um lacete para $F\,(x < 0)$. |
-    | `test_contra_exemplos_sao_tracos_validos` | Qualquer contra-exemplo devolvido é uma execução válida (confirmado pelo simulador). |
-    | `test_resultados_reproduziveis` | A mesma semente e o mesmo modo dão o mesmo resultado. |
+    | Teste | Função | O que verifica |
+    | --- | --- | --- |
+    | `test_sincrona_coincide_com_simulador` | `trans_sincrona`, `passo_concreto` | Para vários estados (incluindo um aleatório), o sucessor dado pelo solver é o do simulador. |
+    | `test_bmc_always_programa_da_ficha7` | `bmc_always` | No programa da ficha 7, $G\,(x \ge 0)$ não tem contra-exemplo e $G\,(x \ne 1)$ tem um mínimo, com 5 estados. |
+    | `test_bmc_eventually_programa_da_ficha7` | `bmc_eventually` | No programa da ficha 7, $F\,(pc = 2)$ não tem contra-exemplo e $F\,(x < 0)$ tem um lacete em $pc = 2$. |
+    | `test_contra_exemplos_sao_tracos_validos` | `verificar_nunca_erro`, `verificar_permanencia`, `traco_e_valido` | Os contra-exemplos das propriedades 1 e 2 no modo assíncrono são execuções válidas. |
+    | `test_resultados_reproduziveis` | todas | A mesma semente e os mesmos parâmetros dão a mesma moldura, a mesma simulação e o mesmo resultado do BMC (no assíncrono o traço pode ser outro, mas também válido). |
     """
     )
     return
@@ -99,23 +96,35 @@ def _(mo):
 @app.cell
 def _(mo):
     import io
+    import random
     import unittest
 
-    from pysmt.shortcuts import FALSE, TRUE, And, Equals, Iff, Int, Ite, Not, Plus, Solver
+    from pysmt.shortcuts import (
+        FALSE, GE, GT, LE, LT, TRUE, And, Equals, Iff, Int, Ite, Minus, Not, Or, Plus, Solver, Symbol,
+    )
+    from pysmt.typing import INT
 
     from automato_celular import (
         celulas_finais,
         celulas_iniciais,
+        bmc_always,
+        bmc_eventually,
         celulas_normais,
         construir_fronteira,
         declarar_estado,
+        estado_inicial_concreto,
         init,
+        passo_concreto,
         proximo_valor,
+        simular_ate_ciclo,
         sortear_iniciais,
+        traco_e_valido,
         trans,
         trans_assincrona,
         trans_sincrona,
         valor_celula,
+        verificar_nunca_erro,
+        verificar_permanencia,
         vizinhos,
     )
 
@@ -394,33 +403,122 @@ def _(mo):
     # FIM DO CÓDIGO GERADO POR LLM (Claude)
     # ==================================================================
 
-    class TestesPorImplementar(unittest.TestCase):
+    # ==================================================================
+    # INÍCIO DO CÓDIGO GERADO POR LLM (Claude)
+    # Toda a classe TestesBMCEPropriedades foi gerada pelo Claude.
+    # ==================================================================
+    # Programa da ficha 7:  { x >= 3 }  0: while (x > 0):  1: x = x - 1  2: stop
+    def declare_ficha7(i):
+        return {"pc": Symbol(f"pc{i}", INT), "x": Symbol(f"x{i}", INT)}
+
+    def init_ficha7(s):
+        return And(Equals(s["pc"], Int(0)), GE(s["x"], Int(3)))
+
+    def trans_ficha7(s, p):
+        return Or(
+            And(Equals(s["pc"], Int(0)), GT(s["x"], Int(0)), Equals(p["pc"], Int(1)), Equals(p["x"], s["x"])),
+            And(Equals(s["pc"], Int(0)), LE(s["x"], Int(0)), Equals(p["pc"], Int(2)), Equals(p["x"], s["x"])),
+            And(Equals(s["pc"], Int(1)), Equals(p["pc"], Int(0)), Equals(p["x"], Minus(s["x"], Int(1)))),
+            And(Equals(s["pc"], Int(2)), Equals(p["pc"], Int(2)), Equals(p["x"], s["x"])),
+        )
+
+    class TestesBMCEPropriedades(unittest.TestCase):
         # --- Transições ---
         def test_sincrona_coincide_com_simulador(self):
             """Modelo simbólico e simulador concreto concordam num passo síncrono."""
-            self.skipTest("TODO")
+            n = 17
+            fronteira = construir_fronteira(n)
+            normais = celulas_normais(n)
+            rng = random.Random(1)
+            grelhas = [estado_inicial_concreto(n)]
+            for _ in range(5):  # alguns estados da execução síncrona
+                grelhas.append(passo_concreto(grelhas[-1], fronteira, "sincrona", n=n))
+            grelhas.append({c: rng.randint(0, 1) for c in normais})  # e uma grelha aleatória
+            s = declarar_estado(0, n)
+            p = declarar_estado(1, n)
+            for k, grelha in enumerate(grelhas):
+                with self.subTest(grelha=k):
+                    esperado = passo_concreto(grelha, fronteira, "sincrona", n=n)
+                    fixar = And([s[c] if grelha[c] == 1 else Not(s[c]) for c in normais])
+                    with Solver(name="z3") as solver:
+                        solver.add_assertion(And(fixar, trans_sincrona(s, p, fronteira, n)))
+                        self.assertTrue(solver.solve(), "a transição síncrona não tem sucessor")
+                        obtido = {c: int(solver.get_py_value(p[c])) for c in normais}
+                    self.assertEqual(obtido, esperado)
 
         # --- BMC genérico ---
         def test_bmc_always_programa_da_ficha7(self):
-            """bmc_always: G(x >= 0) sem contra-exemplo; G(x != 1) com contra-exemplo (programa da ficha 7)."""
-            self.skipTest("TODO")
+            """bmc_always: G(x >= 0) sem contra-exemplo; G(x != 1) com contra-exemplo mínimo (programa da ficha 7)."""
+            r = bmc_always(declare_ficha7, init_ficha7, trans_ficha7, lambda s: GE(s["x"], Int(0)), 20)
+            self.assertEqual(r["resultado"], "sem contra-exemplo até K")
+            r = bmc_always(declare_ficha7, init_ficha7, trans_ficha7, lambda s: Not(Equals(s["x"], Int(1))), 20)
+            self.assertEqual(r["resultado"], "contra-exemplo")
+            # o mais curto: x = 3 -> 2 -> 1, com 5 estados (pc alterna entre 0 e 1)
+            self.assertEqual(r["k"], 5)
+            self.assertEqual(len(r["traço"]), 5)
+            self.assertEqual(r["traço"][0], {"pc": 0, "x": 3})
+            self.assertEqual(r["traço"][-1]["x"], 1)
 
         def test_bmc_eventually_programa_da_ficha7(self):
             """bmc_eventually: F(pc = 2) sem contra-exemplo; F(x < 0) com lacete (programa da ficha 7)."""
-            self.skipTest("TODO")
+            r = bmc_eventually(declare_ficha7, init_ficha7, trans_ficha7, lambda s: Equals(s["pc"], Int(2)), 20)
+            self.assertEqual(r["resultado"], "sem contra-exemplo até K")
+            r = bmc_eventually(declare_ficha7, init_ficha7, trans_ficha7, lambda s: LT(s["x"], Int(0)), 20)
+            self.assertEqual(r["resultado"], "contra-exemplo")
+            traco, lacete = r["traço"], r["lacete"]
+            self.assertEqual(len(traco), r["k"])
+            self.assertIsNotNone(lacete)
+            for estado in traco:  # x < 0 nunca acontece
+                self.assertGreaterEqual(estado["x"], 0)
+            # o lacete fecha: o último estado transita para o estado onde o lacete começa
+            ultimo, alvo = traco[-1], traco[lacete]
+            self.assertEqual(ultimo["pc"], 2)
+            self.assertEqual(alvo, ultimo)
 
         # --- Propriedades ---
         def test_contra_exemplos_sao_tracos_validos(self):
-            """Contra-exemplos das propriedades passam em traco_e_valido."""
-            self.skipTest("TODO")
+            """Os contra-exemplos das propriedades 1 e 2 (modo assíncrono) passam em traco_e_valido."""
+            n = 17
+            fronteira = construir_fronteira(n)
+            r1 = verificar_nunca_erro(fronteira, "assincrona", 10, n)
+            self.assertEqual(r1["resultado"], "contra-exemplo")
+            self.assertEqual(traco_e_valido(r1["traço"], fronteira, "assincrona", n), [])
+            self.assertEqual(r1["validação"], [])
+            self.assertEqual(sum(int(v) for v in r1["traço"][-1].values()), 0, "o último estado não é o de erro")
+
+            r2 = verificar_permanencia((1, n), 0, fronteira, "assincrona", 6, n)
+            self.assertEqual(r2["resultado"], "contra-exemplo")
+            traco = r2["traço"] + [r2["traço"][r2["lacete"]]]  # fecha o lacete
+            self.assertEqual(traco_e_valido(traco, fronteira, "assincrona", n), [])
+            self.assertEqual(r2["validação"], [])
+            for g in r2["traço"]:
+                self.assertEqual(int(g[(1, n)]), 0, "a célula devia estar sempre morta")
 
         def test_resultados_reproduziveis(self):
             """Duas execuções com os mesmos parâmetros dão o mesmo resultado."""
-            self.skipTest("TODO")
+            n = 17
+            fronteira = construir_fronteira(n, 0)
+            self.assertEqual(fronteira, construir_fronteira(n, 0))
+            self.assertEqual(simular_ate_ciclo(fronteira, n), simular_ate_ciclo(fronteira, n))
+            a = verificar_nunca_erro(fronteira, "sincrona", 10, n)
+            b = verificar_nunca_erro(fronteira, "sincrona", 10, n)
+            self.assertEqual((a["resultado"], a["k"], a["traço"]), (b["resultado"], b["k"], b["traço"]))
+            # no assíncrono o solver pode devolver outro traço igualmente válido:
+            # o que tem de se repetir é o resultado, o k e o início do lacete
+            a = verificar_permanencia((1, n), 0, fronteira, "assincrona", 6, n)
+            b = verificar_permanencia((1, n), 0, fronteira, "assincrona", 6, n)
+            for chave in ("resultado", "k", "lacete"):
+                self.assertEqual(a[chave], b[chave], f"«{chave}» mudou entre execuções")
+            self.assertEqual(a["validação"], [])
+            self.assertEqual(b["validação"], [])
+
+    # ==================================================================
+    # FIM DO CÓDIGO GERADO POR LLM (Claude)
+    # ==================================================================
 
     saida = io.StringIO()
     suite = unittest.TestSuite()
-    for classe in (TestesGeometria, TestesEstadoETransicoes, TestesPorImplementar):
+    for classe in (TestesGeometria, TestesEstadoETransicoes, TestesBMCEPropriedades):
         suite.addTests(unittest.defaultTestLoader.loadTestsFromTestCase(classe))
     resultado = unittest.TextTestRunner(stream=saida, verbosity=2).run(suite)
     estado_testes = "passou" if resultado.wasSuccessful() else "falhou"
