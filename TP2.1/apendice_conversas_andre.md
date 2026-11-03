@@ -212,4 +212,51 @@ Ferramenta usada: **Claude**. Os registos abaixo vêm da conversa de apoio ao tr
     Quando tiveres estas duas funções, podes trocar o `skipTest` de `test_numero_de_celulas`, `test_conjuntos_disjuntos` e `test_vizinhanca` pelas verificações. A seguir vem `sortear_iniciais`, que fecha a secção 3.
 
 
+## Registo 11
+
+### Registo de apoio — testes da geometria da grelha
+
+    **Prompt (Claude):**
+
+    > gera me agora os testes, so para confirmar que o codigo esta correto
+
+    **Resposta do LLM:**
+
+    ---
+
+    Vou preencher no notebook de testes as verificações das quatro funções que já fizeste: `celulas_normais`, `celulas_iniciais`, `celulas_finais` e `vizinhos`. Os testes das funções que ainda faltam ficam ignorados.
+
+    *(O LLM criou o ficheiro de testes e executou-o.)*
+
+    Agora confirmo que os testes estão certos: corro-os contra uma implementação de referência minha (que fica só no rascunho, não a envio) e contra versões com erros típicos, que têm de falhar.
+
+    *(O LLM partilhou o ficheiro `test_game_of_life_fsm.py`.)*
+
+    Os testes das quatro funções já feitas (`celulas_normais`, `celulas_iniciais`, `celulas_finais` e `vizinhos`) estão no `test_game_of_life_fsm.py`. Para saber se o teu código está certo, coloca este ficheiro na pasta do projeto, ao lado do teu `game_of_life_fsm.py`, e abre-o no Marimo.
+
+    Testei-os contra uma versão correta minha, que não envio, e passaram todos. Testei-os também contra seis erros típicos, e cada um fez falhar pelo menos um teste:
+
+    - um canto da moldura no conjunto errado;
+    - uma célula inicial repetida;
+    - índices a começar em 0;
+    - a célula contada como vizinha de si própria;
+    - só 4 vizinhos;
+    - usar `N` em vez de `n`.
+
+    O que verificam (9 testes):
+
+    - Contagens: $n^2$ normais, $2n+1$ iniciais e $2n+3$ finais, sem repetidos. Correm com `n` = 2, 3, 5, 17 e 20, o que apanha o uso de `N` em vez de `n`. Por isso tirei o antigo `test_outro_tamanho_de_grelha`.
+    - Índices e conjuntos: os índices de cada conjunto estão certos, os três conjuntos não se sobrepõem e, juntos, cobrem a moldura toda.
+    - Cantos da moldura: cada canto está no conjunto que as contagens obrigam.
+    - Vizinhos: quantos vizinhos normais, iniciais e finais tem uma célula interior e cada um dos quatro cantos. Para todas as células normais confirma ainda os 8 vizinhos pela definição do enunciado e que a vizinhança é simétrica.
+
+    Os testes aceitam que as funções devolvam listas, conjuntos ou geradores. A `vizinhos` só é chamada para células normais, por isso tanto serve a opção de lançar `ValueError` como a de filtrar as posições que não existem.
+
+    Os 10 testes das funções que ainda faltam continuam marcados como ignorados.
+
+    Como no TP1.1, o notebook indica que os testes foram gerados pelo Claude e transcreve o teu pedido. O código gerado está entre os comentários `INÍCIO` e `FIM DO CÓDIGO GERADO POR LLM`.
+
+    Se algum teste falhar, envia-me a mensagem de erro.
+
+
 ## Link da conversa: (colar aqui o link da conversa com o Claude)
