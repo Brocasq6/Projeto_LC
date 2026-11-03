@@ -547,14 +547,27 @@ def _(mo):
     return
 
 
-app._unparsable_cell(
-    r"""
-        from pysmt.shortcuts import (
-            FALSE, TRUE, And, Equals, EqualsOrIff, Iff, Int, Ite, Not, Or, Plus, Solver, Symbol,
-        )
-    """,
-    name="_"
-)
+@app.cell
+def _():
+    from pysmt.shortcuts import (
+        FALSE, TRUE, And, Equals, EqualsOrIff, Iff, Int, Ite, Not, Or, Plus, Solver, Symbol,
+    )
+
+    return (
+        And,
+        Equals,
+        EqualsOrIff,
+        FALSE,
+        Iff,
+        Int,
+        Ite,
+        Not,
+        Or,
+        Plus,
+        Solver,
+        Symbol,
+        TRUE,
+    )
 
 
 @app.function
@@ -745,15 +758,11 @@ def _(bmc_eventually):
 
 
 @app.cell
-def _():
-    return
-
-
-@app.cell
 def _(verificar_permanencia):
     def verificar_todas_celulas(fronteira, modo=MODO_TRANSICAO, k_max=K_MAX, n=N,
                                 celulas=None, parar_no_primeiro=False):
-        """Aplica verificar_permanencia a todas as células normais e devolve uma tabela-resumo."""
+        """Aplica verificar_permanencia a todas as células normais e devolve uma tabela-resumo.
+        A conclusão global fica em tabela.attrs["conclusão"]: falsa, provada ou inconclusiva até K."""
         celulas = celulas_normais(n) if celulas is None else celulas
         linhas = []
         for c in celulas:
@@ -769,10 +778,21 @@ def _(verificar_permanencia):
                     "validação": "—" if r["validação"] is None else ("ok" if not r["validação"] else "falhou"),
                 })
                 if parar_no_primeiro and r["resultado"] == "contra-exemplo":
-                    return pd.DataFrame(linhas)
-        return pd.DataFrame(linhas)
+                    break
+            if parar_no_primeiro and linhas[-1]["resultado"] == "contra-exemplo":
+                break
 
-    return
+        tabela = pd.DataFrame(linhas)
+        resultados = tabela["resultado"]
+        if (resultados == "contra-exemplo").any():
+            tabela.attrs["conclusão"] = "falsa"
+        elif (resultados == "provada no estado inicial").all():
+            tabela.attrs["conclusão"] = "provada"
+        else:
+            tabela.attrs["conclusão"] = "inconclusiva até K"
+        return tabela
+
+    return (verificar_todas_celulas,)
 
 
 @app.cell(hide_code=True)
@@ -787,18 +807,384 @@ def _(mo):
     return
 
 
+app._unparsable_cell(
+    r"""
+        # Profundidades da secção 9 (ajustar depois de medir os tempos de uma célula)
+        K_ERRO_ASSINCRONA = 15        # >= 10: o erro precisa de pelo menos 9 transições
+        K_PERMANENCIA_ASSINCRONA = 10
+        AMOSTRA_P2_ASSINCRONA = None  # None = todas as células; um número = só as N mais afastadas
+        PARAR_P2_ASSINCRONA = True    # parar no primeiro contra-exemplo da propriedade 2
+        LIMITE_K_SINCRONA = 60        # teto do K das verificações cruzadas no modo síncrono
+    """,
+    name="_"
+)
+
+
+@app.function
+def estado_validacao(resultado):
+    """Resume a chave «validação» de um resultado: «—» sem contra-exemplo, «ok» ou «falhou»."""
+    validacao = resultado.get("validação")
+    if validacao is None:
+        return "—"
+    return "ok" if not validacao else "falhou"
+
+
+@app.cell
+def _():
+    moldura = construir_fronteira(N, SEMENTE)
+    traco_sinc, inicio_ciclo_sinc, periodo_sinc = simular_ate_ciclo(moldura, N)
+
+    # propriedade 1: primeiro estado do traço com todas as células mortas (None se não existir)
+    erro_sinc = next((k for k, g in enumerate(traco_sinc) if sum(g.values()) == 0), None)
+
+    # propriedade 2: valores de cada célula no traço inteiro (leitura a) e só no ciclo (leitura b)
+    categoria_sinc = {}
+    constante_no_ciclo_sinc = []
+    for _c in celulas_normais(N):
+        _no_traco = {g[_c] for g in traco_sinc}
+        _no_ciclo = {g[_c] for g in traco_sinc[inicio_ciclo_sinc:]}
+        if _no_traco == {0}:
+            categoria_sinc[_c] = "sempre morta"
+        elif _no_traco == {1}:
+            categoria_sinc[_c] = "sempre viva"
+        else:
+            categoria_sinc[_c] = "muda"
+        if len(_no_ciclo) == 1:
+            constante_no_ciclo_sinc.append(_c)
+    return (
+        categoria_sinc,
+        constante_no_ciclo_sinc,
+        erro_sinc,
+        inicio_ciclo_sinc,
+        moldura,
+        periodo_sinc,
+        traco_sinc,
+    )
+
+
+@app.cell
+def _(
+    categoria_sinc,
+    constante_no_ciclo_sinc,
+    erro_sinc,
+    inicio_ciclo_sinc,
+    mo,
+    moldura,
+    periodo_sinc,
+    traco_sinc,
+):
+    _contagem = {cat: sum(1 for v in categoria_sinc.values() if v == cat)
+                 for cat in ("sempre morta", "sempre viva", "muda")}
+    _constantes = _contagem["sempre morta"] + _contagem["sempre viva"]
+    _simbolo = {"sempre morta": "·", "sempre viva": "■", "muda": "◆"}
+    _mapa = pd.DataFrame(
+        [[_simbolo[categoria_sinc[(i, j)]] for j in range(1, N + 1)] for i in range(1, N + 1)],
+        index=range(1, N + 1), columns=range(1, N + 1),
+    )
+
+    if erro_sinc is None:
+        _p1 = (f"**provada.** Nenhum dos {len(traco_sinc)} estados alcançáveis é o estado de erro. "
+               "Como o modo síncrono é determinista e tem um único estado inicial, estes são "
+               "todos os estados alcançáveis.")
+    else:
+        _p1 = (f"**falsa.** O estado de erro é alcançado no estado {erro_sinc} "
+               f"(traço de {erro_sinc + 1} estados).")
+
+    mo.vstack([
+        mo.md(f"""
+    ### Moldura e simulação síncrona
+
+    Moldura sorteada com `SEMENTE = {SEMENTE}`, N = {N}. Estado inicial com a moldura
+    (■ viva, · morta nas células normais; ● viva, ○ morta na moldura):
+    """),
+        mo.Html(apresentar_grelha(estado_inicial_concreto(N), moldura, N).to_html()),
+        mo.md(f"""
+    A execução síncrona tem **{len(traco_sinc)} estados distintos**: transiente de
+    {inicio_ciclo_sinc} estados e ciclo de período {periodo_sinc}
+    {"(ponto fixo)" if periodo_sinc == 1 else "(oscilador)"}.
+
+    **Propriedade 1 (síncrono):** {_p1}
+
+    **Propriedade 2 (síncrono), leitura (a):** {_contagem["sempre morta"]} células sempre
+    mortas, {_contagem["sempre viva"]} sempre vivas e {_contagem["muda"]} que mudam.
+    A propriedade é **{"falsa" if _constantes else "provada"}**.
+
+    **Leitura (b):** {len(constante_no_ciclo_sinc)} células ficam constantes dentro do ciclo.
+
+    Mapa das células (· sempre morta, ■ sempre viva, ◆ muda):
+    """),
+        mo.Html(_mapa.to_html()),
+    ])
+    return
+
+
 @app.cell
 def _(mo):
-    # TODO: para cada modo em MODOS:
-    #   - construir a fronteira com SEMENTE;
-    #   - correr verificar_nunca_erro e verificar_todas_celulas;
-    #   - medir os tempos;
-    #   - validar os contra-exemplos com traco_e_valido;
-    #   - juntar tudo numa tabela (modo, propriedade, resultado, profundidade, tempo).
-    # Mostrar os contra-exemplos com apresentar_grelha.
-    mo.md("""
-    _Resultados por implementar._
+    botao_p1 = mo.ui.run_button(label="Propriedade 1 — BMC")
+    botao_p2_sinc = mo.ui.run_button(label="Propriedade 2 — verificação cruzada (síncrono)")
+    botao_p2_assinc = mo.ui.run_button(label="Propriedade 2 — BMC (assíncrono)")
+    mo.hstack([botao_p1, botao_p2_sinc, botao_p2_assinc], justify="start")
+    return botao_p1, botao_p2_assinc, botao_p2_sinc
+
+
+@app.cell
+def _(
+    K_ERRO_ASSINCRONA,
+    LIMITE_K_SINCRONA,
+    botao_p1,
+    erro_sinc,
+    mo,
+    moldura,
+    traco_sinc,
+):
+    mo.stop(not botao_p1.value, mo.md("_Carrega em «Propriedade 1 — BMC» para correr esta verificação._"))
+
+    k_p1_sinc = min(len(traco_sinc), LIMITE_K_SINCRONA)
+    p1_sinc = verificar_nunca_erro(moldura, "sincrona", k_p1_sinc, N)
+    p1_assinc = verificar_nunca_erro(moldura, "assincrona", K_ERRO_ASSINCRONA, N)
+
+    # verificação cruzada no síncrono: o BMC tem de concordar com a simulação
+    if erro_sinc is not None and erro_sinc + 1 <= k_p1_sinc:
+        _traco_bmc = [{c: int(v) for c, v in g.items()} for g in (p1_sinc["traço"] or [])]
+        p1_concorda = p1_sinc["k"] == erro_sinc + 1 and _traco_bmc == traco_sinc[: erro_sinc + 1]
+    else:  # sem erro ao alcance de K: o BMC não pode encontrar contra-exemplo
+        p1_concorda = p1_sinc["resultado"] != "contra-exemplo"
+
+    mo.md(f"""
+    ### Propriedade 1 — BMC
+
+    **Síncrono** (K = {k_p1_sinc}): {p1_sinc["resultado"]}, k = {p1_sinc["k"]},
+    {p1_sinc["tempo"]:.2f} s, validação: {estado_validacao(p1_sinc)}.
+    Concorda com a simulação: {"sim ✅" if p1_concorda else "não ❌"}.
+
+    **Assíncrono** (K = {K_ERRO_ASSINCRONA}): {p1_assinc["resultado"]}, k = {p1_assinc["k"]},
+    {p1_assinc["tempo"]:.2f} s, validação: {estado_validacao(p1_assinc)}.
     """)
+    return p1_assinc, p1_concorda, p1_sinc
+
+
+@app.cell
+def _(
+    LIMITE_K_SINCRONA,
+    botao_p2_sinc,
+    categoria_sinc,
+    inicio_ciclo_sinc,
+    mo,
+    moldura,
+    traco_sinc,
+    verificar_permanencia,
+):
+    mo.stop(not botao_p2_sinc.value,
+            mo.md("_Carrega em «Propriedade 2 — verificação cruzada (síncrono)»._"))
+
+    _L = len(traco_sinc)
+    _mortas = [c for c, cat in categoria_sinc.items() if cat == "sempre morta"]
+    _vivas = [c for c, cat in categoria_sinc.items() if cat == "sempre viva"]
+    # as duas últimas sempre mortas (as mais afastadas do quadrado inicial) e uma sempre viva
+    _amostra = [(c, 0) for c in _mortas[-2:]] + [(c, 1) for c in _vivas[:1]]
+
+    _linhas = []
+    if _amostra and _L <= LIMITE_K_SINCRONA:
+        for _c, _valor in _amostra:
+            _r = verificar_permanencia(_c, _valor, moldura, "sincrona", _L, N)
+            _linhas.append({
+                "célula": str(_c), "valor testado": "morta" if _valor == 0 else "viva", "K": _L,
+                "resultado": _r["resultado"], "k": _r["k"], "k esperado": _L,
+                "lacete": _r["lacete"], "lacete esperado": inicio_ciclo_sinc,
+                "validação": estado_validacao(_r), "tempo (s)": round(_r["tempo"], 2),
+                "concorda": _r["k"] == _L and _r["lacete"] == inicio_ciclo_sinc
+                            and estado_validacao(_r) == "ok",
+            })
+        if _L > 1:  # limitação do BMC: com K abaixo do comprimento do traço, o lacete não fecha
+            _c, _valor = _amostra[0]
+            _r = verificar_permanencia(_c, _valor, moldura, "sincrona", _L - 1, N)
+            _linhas.append({
+                "célula": str(_c), "valor testado": "morta" if _valor == 0 else "viva", "K": _L - 1,
+                "resultado": _r["resultado"], "k": _r["k"], "k esperado": "—",
+                "lacete": _r["lacete"], "lacete esperado": "—",
+                "validação": estado_validacao(_r), "tempo (s)": round(_r["tempo"], 2),
+                "concorda": _r["resultado"] != "contra-exemplo",
+            })
+    tabela_p2_sinc = pd.DataFrame(_linhas)
+
+    if not _amostra:
+        _saida = mo.md("Não há células constantes no modo síncrono: não há contra-exemplos para confirmar.")
+    elif _L > LIMITE_K_SINCRONA:
+        _saida = mo.md(f"O traço síncrono tem {_L} estados, acima de `LIMITE_K_SINCRONA` = "
+                       f"{LIMITE_K_SINCRONA}: a verificação cruzada com BMC não foi feita.")
+    else:
+        _saida = mo.vstack([
+            mo.md(f"""
+    ### Propriedade 2 — verificação cruzada (síncrono)
+
+    Para as células constantes, o BMC com K = {_L} tem de encontrar um lacete com k = {_L}
+    que começa no estado {inicio_ciclo_sinc}. A última linha usa K = {_L - 1}: aí o lacete
+    ainda não fecha e o BMC não encontra o contra-exemplo, embora ele exista.
+    """),
+            tabela_p2_sinc,
+        ])
+    _saida
+    return (tabela_p2_sinc,)
+
+
+@app.cell
+def _(
+    AMOSTRA_P2_ASSINCRONA,
+    K_PERMANENCIA_ASSINCRONA,
+    PARAR_P2_ASSINCRONA,
+    botao_p2_assinc,
+    mo,
+    moldura,
+    verificar_permanencia,
+    verificar_todas_celulas,
+):
+    mo.stop(not botao_p2_assinc.value, mo.md("_Carrega em «Propriedade 2 — BMC (assíncrono)»._"))
+
+    # células mais afastadas do quadrado inicial primeiro: são as que mais provavelmente ficam constantes
+    _ordem = sorted(celulas_normais(N), key=lambda c: max(c[0] - 3, c[1] - 3, 0), reverse=True)
+    tabela_p2_assinc = verificar_todas_celulas(
+        moldura, "assincrona", K_PERMANENCIA_ASSINCRONA, N,
+        celulas=_ordem[:AMOSTRA_P2_ASSINCRONA], parar_no_primeiro=PARAR_P2_ASSINCRONA,
+    )
+    _falhou = (tabela_p2_assinc["validação"] == "falhou").any()
+    conclusao_p2_assinc = "erro de validação" if _falhou else tabela_p2_assinc.attrs["conclusão"]
+
+    # repetir o primeiro contra-exemplo para ter o traço (o BMC é determinista: dá o mesmo)
+    _cex = tabela_p2_assinc[tabela_p2_assinc["resultado"] == "contra-exemplo"]
+    if len(_cex):
+        _celula = _cex.iloc[0]["célula"]
+        _valor = 0 if _cex.iloc[0]["valor testado"] == "morta" else 1
+        p2_assinc_exemplo = (_celula, _valor, verificar_permanencia(
+            _celula, _valor, moldura, "assincrona", K_PERMANENCIA_ASSINCRONA, N))
+    else:
+        p2_assinc_exemplo = None
+
+    _mostrar = tabela_p2_assinc.copy()
+    _mostrar["célula"] = _mostrar["célula"].astype(str)
+    mo.vstack([
+        mo.md(f"""
+    ### Propriedade 2 — BMC (assíncrono)
+
+    K = {K_PERMANENCIA_ASSINCRONA}; {len(tabela_p2_assinc)} verificações em
+    {tabela_p2_assinc["tempo (s)"].sum():.1f} s. Conclusão: **{conclusao_p2_assinc}**.
+    """),
+        _mostrar,
+    ])
+    return conclusao_p2_assinc, p2_assinc_exemplo, tabela_p2_assinc
+
+
+@app.cell
+def _(
+    AMOSTRA_P2_ASSINCRONA,
+    K_PERMANENCIA_ASSINCRONA,
+    categoria_sinc,
+    conclusao_p2_assinc,
+    erro_sinc,
+    mo,
+    p1_assinc,
+    p1_concorda,
+    p1_sinc,
+    tabela_p2_assinc,
+    tabela_p2_sinc,
+    traco_sinc,
+):
+    def _texto_bmc(r):
+        if r["resultado"] == "contra-exemplo":
+            return "falsa" if estado_validacao(r) == "ok" else "erro de validação"
+        return f"inconclusiva até K = {r['k']}"
+
+    _constantes = sum(1 for v in categoria_sinc.values() if v != "muda")
+    _val_p2_sinc = ("—" if tabela_p2_sinc.empty
+                    else "ok" if (tabela_p2_sinc["validação"] != "falhou").all() else "falhou")
+    _cex_p2 = tabela_p2_assinc[tabela_p2_assinc["resultado"] == "contra-exemplo"]
+    _resultado_p2_assinc = {
+        "falsa": "falsa",
+        "provada": "provada",
+        "inconclusiva até K": f"inconclusiva até K = {K_PERMANENCIA_ASSINCRONA}",
+    }.get(conclusao_p2_assinc, conclusao_p2_assinc)
+
+    resumo = pd.DataFrame([
+        {"propriedade": "1 — nunca erro", "modo": "síncrono",
+         "método": "simulação até ao ciclo + BMC (verificação cruzada)",
+         "resultado": "provada" if erro_sinc is None else "falsa",
+         "k / K": "—" if erro_sinc is None else str(erro_sinc + 1),
+         "tempo (s)": round(p1_sinc["tempo"], 2),
+         "validação": estado_validacao(p1_sinc) + ("" if p1_concorda else " (BMC discorda!)")},
+        {"propriedade": "1 — nunca erro", "modo": "assíncrono", "método": "BMC",
+         "resultado": _texto_bmc(p1_assinc), "k / K": str(p1_assinc["k"]),
+         "tempo (s)": round(p1_assinc["tempo"], 2), "validação": estado_validacao(p1_assinc)},
+        {"propriedade": "2 — nenhuma célula permanente", "modo": "síncrono",
+         "método": "simulação até ao ciclo + BMC (amostra)",
+         "resultado": "falsa" if _constantes else "provada",
+         "k / K": str(len(traco_sinc)) if _constantes else "—",
+         "tempo (s)": round(tabela_p2_sinc["tempo (s)"].sum(), 2) if not tabela_p2_sinc.empty else 0.0,
+         "validação": _val_p2_sinc},
+        {"propriedade": "2 — nenhuma célula permanente", "modo": "assíncrono",
+         "método": "BMC" + ("" if AMOSTRA_P2_ASSINCRONA is None else f" (amostra de {AMOSTRA_P2_ASSINCRONA})"),
+         "resultado": _resultado_p2_assinc,
+         "k / K": str(_cex_p2.iloc[0]["k"]) if len(_cex_p2) else str(K_PERMANENCIA_ASSINCRONA),
+         "tempo (s)": round(tabela_p2_assinc["tempo (s)"].sum(), 2),
+         "validação": "ok" if conclusao_p2_assinc != "erro de validação" else "falhou"},
+    ])
+    mo.vstack([mo.md("### Resumo"), resumo])
+    return (resumo,)
+
+
+@app.cell
+def _(
+    categoria_sinc,
+    inicio_ciclo_sinc,
+    mo,
+    moldura,
+    p1_assinc,
+    p1_sinc,
+    p2_assinc_exemplo,
+    periodo_sinc,
+    traco_sinc,
+):
+    _ver = lambda g: mo.Html(apresentar_grelha(g, moldura, N).to_html())
+    _blocos = [mo.md("### Contra-exemplos")]
+
+    for _nome, _r in (("síncrono", p1_sinc), ("assíncrono", p1_assinc)):
+        if _r["resultado"] == "contra-exemplo" and estado_validacao(_r) == "ok":
+            _t = _r["traço"]
+            _blocos += [
+                mo.md(f"**Propriedade 1, modo {_nome}:** traço de {len(_t)} estados. "
+                      "À esquerda o estado inicial, à direita o estado de erro."),
+                mo.hstack([_ver(_t[0]), _ver(_t[-1])], justify="start"),
+            ]
+
+    _constantes_sinc = [c for c, cat in categoria_sinc.items() if cat != "muda"]
+    if _constantes_sinc:
+        _c = _constantes_sinc[-1]
+        _blocos += [
+            mo.md(f"**Propriedade 2, modo síncrono:** a célula {_c} está {categoria_sinc[_c]}. "
+                  f"Cabo de {inicio_ciclo_sinc} estados e laço de {periodo_sinc}. "
+                  "Estado onde o laço começa:"),
+            _ver(traco_sinc[inicio_ciclo_sinc]),
+        ]
+
+    if p2_assinc_exemplo is not None:
+        _c, _valor, _r = p2_assinc_exemplo
+        _blocos += [
+            mo.md(f"**Propriedade 2, modo assíncrono:** a célula {_c} fica sempre "
+                  f"{'morta' if _valor == 0 else 'viva'}. Traço de {_r['k']} estados: cabo de "
+                  f"{_r['lacete']} e laço de {_r['k'] - _r['lacete']}. Estado onde o laço começa:"),
+            _ver(_r["traço"][_r["lacete"]]),
+        ]
+
+    mo.vstack(_blocos) if len(_blocos) > 1 else mo.md("_Não foram encontrados contra-exemplos._")
+    return
+
+
+@app.cell
+def _(mo, resumo):
+    _frases = "\n".join(
+        f"- **Propriedade {linha['propriedade']}**, modo {linha['modo']}: {linha['resultado']} "
+        f"({linha['método']}; k / K = {linha['k / K']}; {linha['tempo (s)']} s)."
+        for _, linha in resumo.iterrows()
+    )
+    mo.md(f"### Resultados obtidos\n\n{_frases}")
     return
 
 
