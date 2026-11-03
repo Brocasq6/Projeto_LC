@@ -446,11 +446,78 @@ def apresentar_grelha(grelha, fronteira=None, n=N):
 
 @app.cell
 def _(mo):
-    # TODO: controlo interativo para percorrer a simulação (ex.: mo.ui.slider com o número de passos
-    # e mo.ui.dropdown com o modo de transição) e mostrar a grelha correspondente.
-    mo.md("""
-    _Simulação por implementar._
-    """)
+    PASSOS_SIMULACAO = 200  # máximo do slider; o assíncrono muda uma célula por passo
+
+    modo_sim = mo.ui.dropdown(
+        options=list(MODOS), value=MODO_TRANSICAO, label="Modo de transição"
+    )
+    passo_sim = mo.ui.slider(
+        start=0, stop=PASSOS_SIMULACAO, step=1, value=0, label="Passo", show_value=True
+    )
+    semente_escalonador = mo.ui.number(
+        start=0, stop=1_000_000, step=1, value=0,
+        label="Semente do escalonador (só assíncrono)",
+    )
+    mostrar_moldura = mo.ui.checkbox(value=True, label="Mostrar moldura")
+
+    mo.vstack([
+        mo.md("### Simulação concreta"),
+        mo.hstack([modo_sim, semente_escalonador, mostrar_moldura], justify="start"),
+        passo_sim,
+    ])
+    return (
+        PASSOS_SIMULACAO,
+        modo_sim,
+        mostrar_moldura,
+        passo_sim,
+        semente_escalonador,
+    )
+
+
+@app.cell
+def _(PASSOS_SIMULACAO, modo_sim, semente_escalonador):
+    _rng = random.Random(int(semente_escalonador.value or 0))  # um só gerador para o traço todo
+    fronteira_sim = construir_fronteira(N, SEMENTE)  # a mesma moldura do resto do trabalho
+    traco_sim = [estado_inicial_concreto(N)]
+    for _ in range(PASSOS_SIMULACAO):
+        traco_sim.append(passo_concreto(traco_sim[-1], fronteira_sim, modo_sim.value, _rng, N))
+    erros_sim = traco_e_valido(traco_sim, fronteira_sim, modo_sim.value, N)
+    return erros_sim, fronteira_sim, traco_sim
+
+
+@app.cell
+def _(
+    PASSOS_SIMULACAO,
+    erros_sim,
+    fronteira_sim,
+    mo,
+    modo_sim,
+    mostrar_moldura,
+    passo_sim,
+    traco_sim,
+):
+    _k = passo_sim.value
+    _grelha = traco_sim[_k]
+    _vivas = sum(_grelha.values())
+
+    _linhas = [f"**Passo {_k}** de {PASSOS_SIMULACAO} · modo **{modo_sim.value}** · "
+               f"células vivas: **{_vivas}**"]
+    if _vivas == 0:
+        _linhas.append("⚠️ **Estado de erro:** todas as células normais estão mortas.")
+    if _k > 0:
+        _mudaram = [c for c in _grelha if _grelha[c] != traco_sim[_k - 1][c]]
+        if not _mudaram:
+            _linhas.append("Estado igual ao anterior (estável).")
+        elif modo_sim.value == "assincrona":
+            _linhas.append(f"Mudou a célula {_mudaram[0]}.")
+        else:
+            _linhas.append(f"Mudaram {len(_mudaram)} células.")
+    _linhas.append("✅ Traço válido." if not erros_sim
+                   else f"❌ Traço inválido: {len(erros_sim)} erros (ex.: {erros_sim[0]})")
+    _linhas.append("Legenda: ■ viva, · morta (células normais); ● viva, ○ morta (moldura).")
+
+    _tabela = apresentar_grelha(_grelha, fronteira_sim if mostrar_moldura.value else None, N)
+    mo.vstack([mo.md("\n\n".join(_linhas)), mo.Html(_tabela.to_html())])
     return
 
 
@@ -480,22 +547,82 @@ def _(mo):
     return
 
 
+app._unparsable_cell(
+    r"""
+        from pysmt.shortcuts import (
+            FALSE, TRUE, And, Equals, EqualsOrIff, Iff, Int, Ite, Not, Or, Plus, Solver, Symbol,
+        )
+    """,
+    name="_"
+)
+
+
 @app.function
 def extrair_traco(modelo, estados):
     """Converte o modelo do solver numa lista de dicionários (variável -> valor Python), um por estado."""
-    raise NotImplementedError("TODO")
+    traco = []
+    for estado in estados:
+        traco.append({chave: modelo.get_py_value(var) for chave, var in estado.items()})
+    return traco
 
 
 @app.function
 def bmc_always(declare, init, trans, inv, K):
     """BMC genérico de um invariante G inv: devolve resultado, k, traço (contra-exemplo mínimo, se houver) e tempo."""
-    raise NotImplementedError("TODO")
+    inicio = perf_counter()
+    with Solver(name=SOLVER) as solver:
+        estados = [declare(0)]
+        solver.add_assertion(init(estados[0]))  # permanente
+        for k in range(1, K + 1):
+            if k > 1:
+                estados.append(declare(k - 1))
+                solver.add_assertion(trans(estados[-2], estados[-1]))  # permanente
+            solver.push()
+            solver.add_assertion(Not(inv(estados[-1])))  # só para este k
+            if solver.solve():
+                traco = extrair_traco(solver.get_model(), estados)
+                return {"resultado": "contra-exemplo", "k": k, "traço": traco,
+                        "lacete": None, "tempo": perf_counter() - inicio}
+            solver.pop()
+            # insatisfazível: inv vale no último estado de qualquer traço com k estados,
+            # por isso pode ficar como restrição permanente (ajuda o solver nos k seguintes)
+            solver.add_assertion(inv(estados[-1]))
+    return {"resultado": "sem contra-exemplo até K", "k": K, "traço": None,
+            "lacete": None, "tempo": perf_counter() - inicio}
 
 
-@app.function
-def bmc_eventually(declare, init, trans, prop, K):
-    """BMC genérico de F prop: procura um lacete onde prop nunca é verdade; devolve resultado, k, traço, início do lacete e tempo."""
-    raise NotImplementedError("TODO")
+@app.cell
+def _(EqualsOrIff):
+    def bmc_eventually(declare, init, trans, prop, K):
+        """BMC genérico de F prop: procura um lacete onde prop nunca é verdade; devolve resultado, k, traço, início do lacete e tempo."""
+        inicio = perf_counter()
+        with Solver(name=SOLVER) as solver:
+            estados = [declare(0)]
+            solver.add_assertion(init(estados[0]))
+            for k in range(1, K + 1):
+                if k > 1:
+                    estados.append(declare(k - 1))
+                    solver.add_assertion(trans(estados[-2], estados[-1]))
+                solver.add_assertion(Not(prop(estados[-1])))  # permanente: vale em todo o lacete
+                extra = declare(k)  # estado extra que fecha o lacete
+                solver.push()
+                solver.add_assertion(trans(estados[-1], extra))
+                solver.add_assertion(Or([
+                    And([EqualsOrIff(extra[c], anterior[c]) for c in extra]) for anterior in estados
+                ]))
+                if solver.solve():
+                    completo = extrair_traco(solver.get_model(), estados + [extra])
+                    traco, fecho = completo[:-1], completo[-1]
+                    lacete = next((l for l, estado in enumerate(traco) if estado == fecho), None)
+                    if lacete is None:  # não deve acontecer: o solver garantiu que algum estado coincide
+                        raise RuntimeError(f"k = {k}: o estado extra não coincide com nenhum estado do traço")
+                    return {"resultado": "contra-exemplo", "k": k, "traço": traco,
+                            "lacete": lacete, "tempo": perf_counter() - inicio}
+                solver.pop()  # o estado extra e o fecho do lacete só valiam para este k
+        return {"resultado": "sem contra-exemplo até K", "k": K, "traço": None,
+                "lacete": None, "tempo": perf_counter() - inicio}
+
+    return (bmc_eventually,)
 
 
 @app.cell(hide_code=True)
@@ -521,9 +648,39 @@ def _(mo):
 
 
 @app.function
+def simular_ate_ciclo(fronteira, n=N, passos_max=10_000):
+    """Simula o modo síncrono a partir do estado inicial até um estado se repetir.
+    Devolve (traço sem repetições, índice onde o ciclo começa, período do ciclo)."""
+    grelha = estado_inicial_concreto(n)
+    traco = []
+    vistos = {}  # frozenset das células vivas -> índice onde o estado apareceu
+    while True:
+        chave = frozenset(c for c, v in grelha.items() if v == 1)
+        if chave in vistos:
+            inicio = vistos[chave]
+            return traco, inicio, len(traco) - inicio
+        if len(traco) >= passos_max:
+            raise RuntimeError(f"nenhum estado se repetiu em {passos_max} passos")
+        vistos[chave] = len(traco)
+        traco.append(grelha)
+        grelha = passo_concreto(grelha, fronteira, "sincrona", n=n)
+
+
+@app.function
 def verificar_nunca_erro(fronteira, modo=MODO_TRANSICAO, k_max=K_MAX, n=N):
     """Aplica bmc_always a G ¬erro com a FSM de fabricar_fsm; devolve o dicionário de resultado do BMC."""
-    raise NotImplementedError("TODO")
+    declare, init_fsm, trans_fsm = fabricar_fsm(fronteira, modo, n)
+    resultado = bmc_always(declare, init_fsm, trans_fsm, lambda s: Not(erro(s, n)), k_max)
+    if resultado["traço"] is not None:  # contra-exemplo: conferido pelo simulador
+        traco = resultado["traço"]
+        problemas = traco_e_valido(traco, fronteira, modo, n)
+        if sum(int(v) for v in traco[-1].values()) != 0:
+            problemas.append("o último estado não é o estado de erro")
+        anteriores = [k for k, g in enumerate(traco[:-1]) if sum(int(v) for v in g.values()) == 0]
+        if anteriores:
+            problemas.append(f"contra-exemplo não mínimo: estados de erro antes do fim em {anteriores}")
+        resultado["validação"] = problemas
+    return resultado
 
 
 @app.cell(hide_code=True)
@@ -554,16 +711,68 @@ def _(mo):
     return
 
 
-@app.function
-def verificar_permanencia(celula, valor, fronteira, modo=MODO_TRANSICAO, k_max=K_MAX, n=N):
-    """Aplica bmc_eventually a F(célula ≠ valor) (0 = morta, 1 = viva); devolve o dicionário de resultado do BMC."""
-    raise NotImplementedError("TODO")
+@app.cell
+def _(bmc_eventually):
+    def verificar_permanencia(celula, valor, fronteira, modo=MODO_TRANSICAO, k_max=K_MAX, n=N):
+        """Aplica bmc_eventually a F(célula ≠ valor) (0 = morta, 1 = viva); devolve o dicionário de resultado do BMC."""
+        if celula not in set(celulas_normais(n)):
+            raise ValueError(f"{celula} não é uma célula normal para n = {n}")
+        if valor not in (0, 1):
+            raise ValueError(f"valor tem de ser 0 ou 1, recebido {valor!r}")
+
+        # atalho: se a célula já é diferente de valor no estado inicial, F(célula ≠ valor) vale no estado 0
+        if estado_inicial_concreto(n)[celula] != valor:
+            return {"resultado": "provada no estado inicial", "k": 1, "traço": None,
+                    "lacete": None, "tempo": 0.0, "validação": None}
+
+        declare, init_fsm, trans_fsm = fabricar_fsm(fronteira, modo, n)
+
+        def prop(s):  # «a célula é diferente de valor»
+            return s[celula] if valor == 0 else Not(s[celula])
+
+        resultado = bmc_eventually(declare, init_fsm, trans_fsm, prop, k_max)
+        resultado["validação"] = None
+        if resultado["traço"] is not None:  # contra-exemplo: conferido pelo simulador
+            traco = resultado["traço"]
+            problemas = traco_e_valido(traco + [traco[resultado["lacete"]]], fronteira, modo, n)
+            mudou = [k for k, g in enumerate(traco) if int(g[celula]) != valor]
+            if mudou:
+                problemas.append(f"a célula {celula} não vale {valor} nos estados {mudou}")
+            resultado["validação"] = problemas
+        return resultado
+
+    return (verificar_permanencia,)
 
 
-@app.function
-def verificar_todas_celulas(fronteira, modo=MODO_TRANSICAO, k_max=K_MAX, n=N):
-    """Aplica verificar_permanencia a todas as células normais e devolve uma tabela-resumo."""
-    raise NotImplementedError("TODO")
+@app.cell
+def _():
+    return
+
+
+@app.cell
+def _(verificar_permanencia):
+    def verificar_todas_celulas(fronteira, modo=MODO_TRANSICAO, k_max=K_MAX, n=N,
+                                celulas=None, parar_no_primeiro=False):
+        """Aplica verificar_permanencia a todas as células normais e devolve uma tabela-resumo."""
+        celulas = celulas_normais(n) if celulas is None else celulas
+        linhas = []
+        for c in celulas:
+            for valor in (0, 1):
+                r = verificar_permanencia(c, valor, fronteira, modo, k_max, n)
+                linhas.append({
+                    "célula": c,
+                    "valor testado": "morta" if valor == 0 else "viva",
+                    "resultado": r["resultado"],
+                    "k": r["k"],
+                    "lacete": r["lacete"],
+                    "tempo (s)": round(r["tempo"], 2),
+                    "validação": "—" if r["validação"] is None else ("ok" if not r["validação"] else "falhou"),
+                })
+                if parar_no_primeiro and r["resultado"] == "contra-exemplo":
+                    return pd.DataFrame(linhas)
+        return pd.DataFrame(linhas)
+
+    return
 
 
 @app.cell(hide_code=True)
