@@ -324,4 +324,216 @@ Ferramenta usada: **Claude**. Os registos abaixo vêm da conversa de apoio ao tr
     - **Porque são três células:** o valor de um controlo só pode ser lido numa célula diferente daquela onde é criado. Com a simulação separada da visualização, mover o slider não recalcula o traço.
 
 
-## Link da conversa: (colar aqui o link da conversa com o Claude)
+## Registo 15
+
+### Registo de apoio — guia para o BMC genérico (secção 6)
+
+    **Prompt (Claude):**
+
+    > Certo, guia me agora para as funções da secção 6
+
+    **Resposta do LLM:**
+
+    ---
+
+    *(O LLM deu um guia passo a passo, sem código:)*
+
+    - **Princípio:** as funções da secção 6 são genéricas. Recebem só `declare`, `init`, `trans`, a propriedade e `K`, sem nada específico do Game of Life, para poderem ser testadas primeiro com o programa da ficha 7. As duas devolvem um dicionário com as mesmas chaves: `resultado`, `k`, `traço`, `lacete` e `tempo`.
+    - **`extrair_traco`:** para cada estado, um dicionário com as mesmas chaves e o valor Python de cada variável no modelo. Não converter `True` para 1, para servir também a variáveis inteiras. Chamar com o solver ainda aberto.
+    - **`bmc_always`:**
+      - para $k = 1..K$, procurar um traço de $k$ estados que começa num estado inicial, respeita `trans` e cujo último estado viola `inv`;
+      - versão incremental, com um único solver: `init` e as transições ficam como restrições permanentes, e a negação de `inv` fica entre `push` e `pop`;
+      - otimização opcional: depois de um $k$ insatisfazível, juntar `inv` desse estado como restrição permanente.
+    - **`bmc_eventually`:**
+      - um contra-exemplo de $F\,\mathit{prop}$ é um lacete em que `prop` nunca acontece;
+      - `not prop` fica permanente em cada estado do traço;
+      - o lacete fecha-se com um estado extra, uma única transição até ele e a disjunção «o estado extra é igual a algum estado anterior», escrita com `EqualsOrIff` (que tem de ser acrescentado aos imports);
+      - o estado extra e o fecho ficam entre `push` e `pop`;
+      - o início do lacete descobre-se comparando o estado extra com os anteriores no traço extraído.
+    - **Interpretação:** o BMC refuta mas não prova. «Sem contra-exemplo até K» só vale até esse limite, e no modo síncrono a prova vem da simulação com deteção de ciclo.
+    - **Testes com a ficha 7:**
+      - $G\,(x \ge 0)$ sem contra-exemplo;
+      - $G\,(x \ne 1)$ com contra-exemplo;
+      - $F\,(pc = 2)$ sem contra-exemplo;
+      - $F\,(x < 0)$ com lacete;
+      - confirmar à mão os traços e verificar que o $k$ é mínimo;
+      - só depois aplicar ao autómato, começando com K pequeno.
+
+    **Prompt (Claude):**
+
+    > (import de `EqualsOrIff` acrescentado ao `app.setup` e código de `extrair_traco` e `bmc_always`)
+    >
+    > explica me melhor bmc_eventually
+
+    **Resposta do LLM:**
+
+    ---
+
+    *(O LLM reviu o código e explicou com mais detalhe a lógica de `bmc_eventually`, sem código:)*
+
+    - **Revisão:**
+      - o import e `extrair_traco` estão corretos;
+      - `bmc_always` segue a versão incremental: `init` e as transições são permanentes, a negação de `inv` fica entre `push` e `pop`, a otimização está justificada no comentário e o resultado tem as mesmas chaves que `bmc_eventually` vai usar.
+    - **Porquê um lacete:** um traço finito nunca refuta $F\,\mathit{prop}$, porque `prop` pode acontecer mais tarde. Como o espaço de estados é finito, uma execução infinita repete um estado, e o contra-exemplo é um traço $s_0, \dots, s_{k-1}$ que volta a um $s_l$ anterior, com `prop` falsa em todos os estados.
+    - **Diferenças em relação a `bmc_always`:** `not prop` é permanente em cada estado do traço, e não só no último. O que fica entre `push` e `pop` é o fecho do lacete.
+    - **Fecho do lacete:** um estado extra $s_k$, uma única transição `trans(s_{k-1}, s_k)` e a disjunção, para cada $l$, de «$s_k = s_l$» escrita chave a chave com `EqualsOrIff`. É muito menor do que uma disjunção de $k$ transições, e não é preciso impor `not prop` no estado extra.
+    - **Índices:** o estado extra usa o índice $k$, que na iteração seguinte passa a ser um estado normal do traço. Não há problema, porque o `pop` retira as restrições sobre ele.
+    - **Resultado:** o início do lacete é o primeiro $l$ cujo estado no traço extraído coincide com o estado extra. Devolve-se o traço sem o estado extra e o índice `lacete`. Para o validar, quem chama acrescenta uma cópia de `traço[lacete]` e usa `traco_e_valido`.
+
+    **Prompt (Claude):**
+
+    > (código de `bmc_eventually`)
+
+    **Resposta do LLM:**
+
+    ---
+
+    *(O LLM reviu o código:)*
+
+    - **Lógica:** está correta e segue o guia. `not prop` é permanente, há um estado extra e o fecho do lacete fica entre `push` e `pop`. A deteção de $l$ por comparação de dicionários também está certa.
+    - **Erro de escrita:** `solver.addec_assertion(...)` tem de ser `solver.add_assertion(...)`. Como está, a função lança `AttributeError` na primeira iteração.
+    - **`next(...)` sem valor por omissão:** se nenhum estado coincidir com o extra, `next` lança `StopIteration`, uma exceção pouco clara. Deve usar-se `None` como valor por omissão e, nesse caso, lançar um erro explícito a dizer que o lacete não foi encontrado no traço.
+    - **A seguir:** depois de corrigir, correr os dois testes da ficha 7 com `bmc_eventually` antes de avançar.
+
+
+## Registo 16
+
+### Registo de apoio — guia para a propriedade 1
+
+    **Prompt (Claude):**
+
+    > Explica me agora como devo fazer o codigo da propriedade 1
+
+    **Resposta do LLM:**
+
+    ---
+
+    *(O LLM deu um guia passo a passo, sem código:)*
+
+    - **`verificar_nunca_erro`:**
+      - obter `(declare, init, trans)` com `fabricar_fsm` e definir o invariante «não `erro(s, n)`», passando o `n`;
+      - chamar `bmc_always`;
+      - se houver contra-exemplo, validá-lo numa chave `"validação"`: `traco_e_valido` sem erros, o último estado todo morto e nenhum estado de erro antes do fim (o que confirma que é mínimo).
+    - **Modo síncrono, prova pela simulação:** o sistema é determinista e tem um único estado inicial, por isso há uma só execução, que acaba por repetir um estado. Os estados alcançáveis são os da simulação até à primeira repetição. Se nenhum for de erro, a propriedade está provada sem limite de profundidade. Se algum for, o BMC tem de encontrar esse mesmo prefixo, o que serve de validação cruzada.
+    - **`simular_ate_ciclo`:**
+      - função auxiliar nova, que também serve à propriedade 2;
+      - guarda num dicionário cada estado já visto, convertido em `frozenset` das células vivas, com o índice onde apareceu;
+      - devolve o traço, o início do ciclo e o período;
+      - tem um número máximo de passos, por segurança;
+      - procurar o estado de erro em todo o traço, porque a moldura pode fazer renascer células.
+    - **Modo assíncrono, o BMC é a ferramenta principal:**
+      - com 9 células vivas e uma mudança por passo, um contra-exemplo precisa de pelo menos 10 estados, por isso `K_MAX = 10` está no limite;
+      - correr com `k_max` crescente, registar os tempos e escrever no relatório o $K$ usado e este argumento;
+      - sem contra-exemplo, o resultado é inconclusivo. A k-indução teria pouca hipótese de funcionar, porque «pelo menos uma célula viva» não se preserva em geral.
+    - **Organização:** `simular_ate_ciclo` na secção 5 ou 7, `verificar_nunca_erro` e o argumento da prova na secção 7, e as execuções e a tabela de resultados na secção 9.
+    - **Testes:**
+      - `test_contra_exemplos_sao_tracos_validos`;
+      - `test_resultados_reproduziveis`, sem comparar os traços no modo assíncrono;
+      - `test_outro_tamanho_de_grelha`, com $n = 18$.
+
+
+## Registo 17
+
+### Registo de apoio — guia para a propriedade 2
+
+    **Prompt (Claude):**
+
+    > Explica me agora como devo fazer o codigo da propriedade 2
+
+    **Resposta do LLM:**
+
+    ---
+
+    *(O LLM deu um guia passo a passo, sem código:)*
+
+    - **Interpretação:** «permanentemente morta» pode ser (a) $G\,(c = 0)$, morta durante toda a execução, ou (b) $F\,G\,(c = 0)$, morta a partir de certo momento. A leitura principal é a (a), que se verifica com $F\,(c = 1)$ e $F\,(c = 0)$ por célula, ou seja, $2N^2 = 578$ fórmulas. A (b) deve ser mencionada no relatório e respondida no modo síncrono com a simulação.
+    - **Metade é trivial:** como o estado inicial é único, cada célula já cumpre uma das duas fórmulas no estado 0. Esses 289 casos marcam-se como «provada no estado inicial», sem BMC.
+    - **`verificar_permanencia`:**
+      - validar a célula e o valor;
+      - aplicar o atalho do estado inicial;
+      - nos restantes casos, chamar `bmc_eventually` com a propriedade «a célula é diferente de `valor`»;
+      - validar o contra-exemplo com `traco_e_valido`, acrescentando `traço[lacete]` ao fim, e confirmar que a célula vale `valor` em todo o traço.
+    - **Modo síncrono:**
+      - a simulação até ao ciclo dá a resposta exata nas duas leituras. A leitura (a) olha para os valores em todo o traço, e a (b) só para os valores dentro do ciclo;
+      - validação cruzada: o BMC numa célula constante, com `k_max` igual ao comprimento do traço, tem de encontrar o lacete no início do ciclo. Com um `k_max` menor não o encontra, o que ilustra o limite do BMC.
+    - **Modo assíncrono:**
+      - o BMC é necessário;
+      - começar por medir os tempos com $K$ crescente numa célula afastada;
+      - começar pelas células com mais probabilidade de ficarem constantes, porque basta uma para refutar a propriedade;
+      - incluir no relatório uma nota sobre justiça: os contra-exemplos assumem um escalonador arbitrário.
+    - **`verificar_todas_celulas`:**
+      - uma linha por célula e por valor testado, com a célula, o valor («morta»/«viva»), o resultado, $k$, o lacete, o tempo e se a validação passou, devolvida num `DataFrame`;
+      - parâmetros opcionais `celulas` (para correr só uma amostra no modo assíncrono) e «parar no primeiro contra-exemplo»;
+      - além da tabela, uma conclusão global: falsa se houver algum contra-exemplo, provada se todas as linhas estiverem provadas no estado inicial, e inconclusiva até K nos restantes casos.
+    - **Funções a criar:** só `verificar_permanencia` e `verificar_todas_celulas`. A análise do modo síncrono pela simulação faz-se na secção 9, a partir de `simular_ate_ciclo`.
+    - **No Marimo:** pôr as execuções pesadas da secção 9 atrás de um `mo.ui.run_button`.
+    - **Texto da secção 8:** a escolha da leitura, o atalho do estado inicial, o argumento do determinismo, a estratégia no modo assíncrono e a nota sobre justiça.
+
+
+## Registo 18
+
+### Registo de apoio — revisão da propriedade 2 e secção 9 (resultados)
+
+    **Prompt (Claude):**
+
+    > Reve
+    >
+    > (código de `verificar_permanencia` e `verificar_todas_celulas`)
+    >
+    > e guia me pra secção 9
+
+    **Resposta do LLM:**
+
+    ---
+
+    *(O LLM reviu o código e deu a estrutura da secção 9, sem código:)*
+
+    - **Revisão:**
+      - `verificar_permanencia` está correta: valida os argumentos, o atalho do estado inicial usa o mesmo formato e a validação inclui a transição de regresso do lacete;
+      - `verificar_todas_celulas` está correta na lógica principal, mas precisa de três ajustes:
+        - um contra-exemplo com validação falhada não deve contar como «falsa», porque indica um erro no modelo;
+        - tratar à parte a lista de células vazia, que dá `KeyError`;
+        - os `attrs` do pandas são experimentais, por isso deve ler-se a conclusão logo a seguir à chamada, ou devolver o par (tabela, conclusão).
+    - **Estrutura da secção 9,** em blocos com custos diferentes:
+      - **A — moldura e simulação síncrona** (sempre):
+        - mostrar a moldura e o estado inicial;
+        - indicar o transiente, o período e se é ponto fixo;
+        - propriedade 1 no modo síncrono, provada pelo argumento do determinismo;
+        - propriedade 2 no modo síncrono, nas leituras (a) e (b), com as contagens e, se possível, uma grelha com a categoria de cada célula.
+      - **B — propriedade 1 com BMC** (atrás de um botão): no modo síncrono, com `k_max` igual ao comprimento do traço, como verificação cruzada com a simulação; no modo assíncrono, com a profundidade escolhida, que é o resultado principal.
+      - **C — propriedade 2, verificações cruzadas no modo síncrono** (atrás de um botão): duas ou três células constantes, com `k_max` igual ao comprimento do traço. Espera-se $k$ igual a esse comprimento, lacete no início do ciclo e validação vazia. Opcionalmente, uma delas com `k_max` menor, para mostrar o limite do BMC.
+      - **D — propriedade 2 no modo assíncrono** (atrás de um botão): decidir pelos tempos medidos entre todas as células, uma amostra representativa ou parar no primeiro contra-exemplo.
+      - **E — resumo e contra-exemplos:**
+        - uma tabela com propriedade, modo, método, resultado, $k$ ou $K$, tempo e validação;
+        - os contra-exemplos mostrados com `apresentar_grelha`, só depois de confirmada a validação.
+    - **Botões:** um `mo.ui.run_button` por bloco pesado, com `mo.stop` na primeira linha da célula do cálculo.
+    - **Constantes:** no `app.setup`, um $K$ para a propriedade 1 e outro para a propriedade 2 no modo assíncrono, justificados pelos tempos medidos. O ponto «Limite» da secção 2 deve ser atualizado.
+    - **Ligação à secção 10:**
+      - gerar a conclusão com uma f-string a partir das variáveis do bloco E;
+      - deixar em texto fixo a discussão: comparação dos modos, papel da moldura, limites do BMC, justiça e leituras (a) e (b).
+    - **Testes:** `test_contra_exemplos_sao_tracos_validos`, `test_resultados_reproduziveis` e `test_outro_tamanho_de_grelha`, com $K$ pequenos.
+
+    **Prompt (Claude):**
+
+    > (pedido do código da secção 9)
+
+    **Resposta do LLM:**
+
+    ---
+
+    *(O LLM escreveu o código da secção 9 e correu-o:)*
+
+    - **Célula 9A:** constrói a fronteira e faz a simulação síncrona até ao ciclo. Mostra a propriedade 1 no modo síncrono (provada) e a propriedade 2 nas leituras (a) e (b), com a tabela por célula.
+    - **Célula 9B:** a amostra de células para o modo assíncrono (cantos, centro e junto ao quadrado inicial) e um `mo.ui.run_button`.
+    - **Célula 9C,** atrás do botão com `mo.stop`:
+      - a propriedade 1 com BMC nos dois modos;
+      - a validação cruzada da propriedade 2 no modo síncrono numa célula constante, com `k_max` igual ao comprimento do traço;
+      - a propriedade 2 no modo assíncrono na amostra;
+      - a tabela-resumo.
+    - **Célula 9D:** os contra-exemplos da propriedade 1 (primeiro, meio e último estado) e da propriedade 2 (início do lacete e último estado), com `apresentar_grelha`.
+    - **Resultados (N = 17, `SEMENTE = 0`):**
+      - propriedade 1: provada no modo síncrono pela simulação (157 estados, ponto fixo no estado 156); falsa no modo assíncrono, com contra-exemplo validado de $k = 10$;
+      - propriedade 2: falsa nos dois modos. No modo síncrono, 71 células nunca mudam, e o BMC em $(17,17)$ com $K = 157$ dá lacete em 156. No modo assíncrono, as 8 células da amostra têm contra-exemplo com $k = 6$.
+
+
+## Link da conversa: https://claude.ai/share/ca8de5ff-c760-4448-a412-7917826374d5
